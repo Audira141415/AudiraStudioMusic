@@ -779,6 +779,101 @@ export default function App() {
     handleSettingChange('bgAudioName', file.name);
   };
 
+  // Ambient Sound Bed Synthesizer (100% Non-Copyright Procedural Sound Generator)
+  const synthNodesRef = useRef<{
+    context: AudioContext | null;
+    source: AudioNode | null;
+    gain: GainNode | null;
+  }>({ context: null, source: null, gain: null });
+
+  const stopAmbientSynthesizer = () => {
+    if (synthNodesRef.current.source) {
+      try { (synthNodesRef.current.source as any).stop?.(); } catch {}
+      try { synthNodesRef.current.source.disconnect(); } catch {}
+      synthNodesRef.current.source = null;
+    }
+    if (synthNodesRef.current.gain) {
+      try { synthNodesRef.current.gain.disconnect(); } catch {}
+      synthNodesRef.current.gain = null;
+    }
+  };
+
+  const startAmbientSynthesizer = (preset: string, volumePct: number) => {
+    stopAmbientSynthesizer();
+    if (!preset || preset === 'none') return;
+
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = synthNodesRef.current.context || new AudioContextClass();
+      synthNodesRef.current.context = ctx;
+
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      const bufferSize = ctx.sampleRate * 3; // 3-second noise buffer loop
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+
+      // Generate math procedural noise based on preset
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        if (preset === 'pink_noise' || preset === 'cafe') {
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.06;
+          b6 = white * 0.115926;
+        } else if (preset === 'crackle') {
+          const isPop = Math.random() < 0.003;
+          output[i] = isPop ? (Math.random() * 0.6 - 0.3) : (white * 0.015);
+        } else {
+          b0 = (b0 + (0.02 * white)) / 1.02;
+          output[i] = b0 * 0.4;
+        }
+      }
+
+      const whiteNoiseSource = ctx.createBufferSource();
+      whiteNoiseSource.buffer = noiseBuffer;
+      whiteNoiseSource.loop = true;
+
+      const filter = ctx.createBiquadFilter();
+      if (preset === 'rain') {
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, ctx.currentTime);
+      } else if (preset === 'crackle') {
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1200, ctx.currentTime);
+        filter.Q.setValueAtTime(1.5, ctx.currentTime);
+      } else if (preset === 'cafe') {
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1000, ctx.currentTime);
+        filter.Q.setValueAtTime(0.8, ctx.currentTime);
+      } else {
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(3000, ctx.currentTime);
+      }
+
+      const gain = ctx.createGain();
+      const targetVolume = Math.max(0.01, Math.min(0.5, (volumePct || 15) / 100));
+      gain.gain.setValueAtTime(targetVolume, ctx.currentTime);
+
+      whiteNoiseSource.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      whiteNoiseSource.start();
+      synthNodesRef.current.source = whiteNoiseSource;
+      synthNodesRef.current.gain = gain;
+    } catch (e) {
+      console.warn("Ambient synthesizer init failed:", e);
+    }
+  };
+
   // Play / Pause toggler
   const handlePlayPause = () => {
     if (!audioElementRef.current) return;
@@ -790,6 +885,7 @@ export default function App() {
       mainAudio.pause();
       if (vo) vo.pause();
       if (bgAudioElementRef.current) bgAudioElementRef.current.pause();
+      stopAmbientSynthesizer();
       setIsPlaying(false);
     } else {
       initAudioAnalyser();
@@ -800,10 +896,14 @@ export default function App() {
           vo.currentTime = mainAudio.currentTime;
           vo.play().catch(e => console.warn("Voiceover play blocked:", e));
         }
-        if (bgAudioElementRef.current && settings.enableBgAudio) {
-          bgAudioElementRef.current.currentTime = mainAudio.currentTime;
-          bgAudioElementRef.current.volume = Math.max(0.01, Math.min(1, (settings.bgAudioVolume || 15) / 100));
-          bgAudioElementRef.current.play().catch(e => console.warn("Bg audio play blocked:", e));
+        if (settings.enableBgAudio) {
+          if (bgAudioElementRef.current && settings.bgAudioUrl) {
+            bgAudioElementRef.current.currentTime = mainAudio.currentTime;
+            bgAudioElementRef.current.volume = Math.max(0.01, Math.min(1, (settings.bgAudioVolume || 15) / 100));
+            bgAudioElementRef.current.play().catch(e => console.warn("Bg audio play blocked:", e));
+          } else if (settings.bgAudioPreset && settings.bgAudioPreset !== 'none') {
+            startAmbientSynthesizer(settings.bgAudioPreset, settings.bgAudioVolume || 15);
+          }
         }
       }).catch(err => {
         console.warn("Audio play blocked by browser autoplay rules:", err);
