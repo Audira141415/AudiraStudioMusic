@@ -1553,6 +1553,8 @@ export default function App() {
             lastExportStatus={exportStatus}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
+            onOpenDirectDownload={handleOpenDirectDownload}
+            onOpenStemSeparator={() => setIsStemModalOpen(true)}
           />
         )}
 

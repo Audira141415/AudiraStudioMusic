@@ -288,6 +288,32 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
         </button>
       </div>
 
+      {/* Quick Tools Header (Direct Download & Stem Separator) */}
+      <div className="grid grid-cols-2 gap-2 pb-2">
+        {onOpenDirectDownload && (
+          <button
+            type="button"
+            onClick={() => onOpenDirectDownload('audio')}
+            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-black text-[10px] uppercase border-2 border-black rounded-xl shadow-[2.5px_2.5px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer select-none"
+            title="Unduh audio/video langsung dari link URL YouTube, TikTok, dll"
+          >
+            <span>⚡</span>
+            <span>DOWNLOAD URL / YT</span>
+          </button>
+        )}
+        {onOpenStemSeparator && (
+          <button
+            type="button"
+            onClick={onOpenStemSeparator}
+            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-[#06B6D4] hover:bg-[#0891B2] text-white font-black text-[10px] uppercase border-2 border-black rounded-xl shadow-[2.5px_2.5px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer select-none"
+            title="Pisahkan lagu menjadi vokal & musik instrumen"
+          >
+            <span>🎼</span>
+            <span>AI STEM SEPARATOR</span>
+          </button>
+        )}
+      </div>
+
       {/* Template Preset Buttons (Save / Load) */}
       <div className="grid grid-cols-2 gap-2 pb-2 border-b-2 border-black/10">
         <button

@@ -33,14 +33,18 @@ interface DashboardViewProps {
   exportCount: number;
   lastExportStatus: string;
   activeTab: string;
-  setActiveTab: (tab: 'dashboard' | 'editor' | 'history' | 'settings') => void;
+  setActiveTab: (tab: 'dashboard' | 'editor' | 'history' | 'settings' | 'queue') => void;
+  onOpenDirectDownload?: (type?: 'audio' | 'background') => void;
+  onOpenStemSeparator?: () => void;
 }
 
 export function DashboardView({ 
   onSelectPreset, 
   exportCount, 
   lastExportStatus,
-  setActiveTab
+  setActiveTab,
+  onOpenDirectDownload,
+  onOpenStemSeparator
 }: DashboardViewProps) {
   const [diagnostics, setDiagnostics] = React.useState<any>(null);
   const [loadingDiag, setLoadingDiag] = React.useState<boolean>(true);
@@ -173,10 +177,33 @@ export function DashboardView({
           <p className="text-sm font-semibold text-black/75 max-w-xl">
             Ubah file audio Anda menjadi video visualizer musik premium berkecepatan tinggi dengan akselerasi GPU WebGL dan Tauri.
           </p>
+          {/* Quick AI & Download Launcher Pills */}
+          <div className="flex flex-wrap gap-2 pt-2">
+            {onOpenDirectDownload && (
+              <button
+                type="button"
+                onClick={() => onOpenDirectDownload('audio')}
+                className="px-3.5 py-1.5 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white border-2 border-black rounded-lg font-black text-xs uppercase shadow-[2px_2px_0px_#000] active:translate-y-[1px] cursor-pointer flex items-center gap-1.5"
+              >
+                <span>⚡</span>
+                <span>Direct Download URL (yt-dlp)</span>
+              </button>
+            )}
+            {onOpenStemSeparator && (
+              <button
+                type="button"
+                onClick={onOpenStemSeparator}
+                className="px-3.5 py-1.5 bg-[#06B6D4] hover:bg-[#0891B2] text-white border-2 border-black rounded-lg font-black text-xs uppercase shadow-[2px_2px_0px_#000] active:translate-y-[1px] cursor-pointer flex items-center gap-1.5"
+              >
+                <span>🎼</span>
+                <span>AI Stem Separator (Vokal & Musik)</span>
+              </button>
+            )}
+          </div>
         </div>
         <button 
           onClick={() => setActiveTab('editor')}
-          className="px-6 py-3 bg-[#8B5CF6] text-white border-[2.5px] border-black rounded-xl font-black text-sm uppercase tracking-wider flex items-center gap-2 shadow-[3px_3px_0px_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000] active:translate-y-[1px] active:shadow-[2px_2px_0px_#000] transition-all"
+          className="px-6 py-3 bg-[#8B5CF6] text-white border-[2.5px] border-black rounded-xl font-black text-sm uppercase tracking-wider flex items-center gap-2 shadow-[3px_3px_0px_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000] active:translate-y-[1px] active:shadow-[2px_2px_0px_#000] transition-all shrink-0"
         >
           <span>Buka Workspace</span>
           <ArrowRight className="w-4 h-4" />
