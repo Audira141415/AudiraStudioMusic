@@ -2269,6 +2269,28 @@ def render_video(config, job_ref=None):
                         glow_mask = glow_layer[:, :, 3] > 0
                         overlay[glow_mask] = glow_layer[glow_mask]
 
+                    # I. Club Spotlights (Lampu Sorot Disko)
+                    if settings.get("vfxClubLights", False):
+                        light_angle1 = math.sin(t * 1.8) * 0.4
+                        light_angle2 = math.cos(t * 2.2) * 0.4
+                        
+                        def draw_spotlight(top_x, angle, color_bgra):
+                            pts = [
+                                (top_x, 0),
+                                (int(top_x + math.sin(angle - 0.25) * p_height * 1.5), p_height),
+                                (int(top_x + math.sin(angle + 0.25) * p_height * 1.5), p_height)
+                            ]
+                            cv2.fillPoly(overlay, [np.array(pts, dtype=np.int32)], color_bgra)
+
+                        draw_spotlight(int(p_width * 0.2), light_angle1, (255, 0, 255, int(255 * 0.25 * vfx_opacity)))
+                        draw_spotlight(int(p_width * 0.8), light_angle2, (0, 255, 255, int(255 * 0.25 * vfx_opacity)))
+
+                    # J. Neon Strobe Glitch FX
+                    if settings.get("vfxGlitch", False) and random.random() < 0.18:
+                        glitch_h = int(random.random() * 40 + 10)
+                        glitch_y = int(random.random() * (p_height - glitch_h))
+                        cv2.rectangle(overlay, (0, glitch_y), (p_width, glitch_y + glitch_h), (255, 0, 150, int(255 * 0.35 * vfx_opacity)), -1)
+
                     # Blend particles/VFX overlay onto main frame using optimized alpha blending
                     alpha_vfx = overlay[:, :, 3:4]
                     mask = alpha_vfx[:, :, 0] > 0
