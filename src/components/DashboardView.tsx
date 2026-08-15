@@ -14,7 +14,8 @@ import {
   Activity,
   CheckCircle2,
   AlertOctagon,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 
 interface Preset {
@@ -271,11 +272,38 @@ export function DashboardView({
             Memeriksa integritas sistem dan status komponen...
           </div>
         ) : !diagnostics ? (
-          <div className="border-[2.5px] border-red-500 bg-red-50 p-4 rounded-xl flex items-center gap-3 text-red-700 font-bold text-xs neo-shadow shadow-[2px_2px_0px_#000]">
-            <AlertOctagon className="w-5 h-5 flex-shrink-0" />
-            <div>
-              Gagal menghubungi Python Backend (http://localhost:1426). Pastikan server Python telah aktif (jalankan start.bat).
+          <div className="border-[2.5px] border-red-500 bg-red-50 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-red-700 font-bold text-xs neo-shadow shadow-[2px_2px_0px_#000]">
+            <div className="flex items-center gap-3">
+              <AlertOctagon className="w-5 h-5 flex-shrink-0 text-red-600" />
+              <div>
+                Python Backend (http://localhost:1426) belum terhubung.
+              </div>
             </div>
+            <button 
+              onClick={async () => {
+                setLoadingDiag(true);
+                try {
+                  if ((window as any).__TAURI_INTERNALS__) {
+                    const { invoke } = await import('@tauri-apps/api/core');
+                    await invoke('start_python_backend');
+                  }
+                } catch (e) {
+                  console.warn("Tauri invoke start_python_backend error:", e);
+                }
+                // Retry fetching diagnostics up to 5 times
+                let attempts = 0;
+                while (attempts < 5) {
+                  await new Promise(r => setTimeout(r, 600));
+                  attempts++;
+                  await fetchDiagnostics();
+                }
+                setLoadingDiag(false);
+              }}
+              className="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xs rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
+            >
+              <Zap className="w-4 h-4 text-black fill-black" />
+              <span>HUBUNGKAN / START PYTHON BACKEND OTOMATIS</span>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
