@@ -106,6 +106,7 @@ export function HistoryView({
     status: 'Queued'
   }));
   const pastJobs = history.filter(h => h.status !== 'Queued' && h.status !== 'Exporting' && !h.status.toLowerCase().includes('rendering'));
+  const hasBackendActiveSlot = parallelSlots.some(s => s && s.status === 'rendering');
 
   const formatElapsedReal = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -155,9 +156,9 @@ export function HistoryView({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[0, 1, 2].map((slotIdx) => {
             const slotData = parallelSlots[slotIdx] || { slotId: slotIdx, status: 'idle' };
-            const isSlotActive = (isExporting && slotIdx === 0) || slotData.status === 'rendering';
-            const slotProgress = slotIdx === 0 ? exportProgress : (slotData.progress || 0);
-            const slotTitle = slotData.title || (slotIdx === 0 && activeJob ? activeJob.fileName : `Slot ${slotIdx + 1}`);
+            const isSlotActive = slotData.status === 'rendering' || (!hasBackendActiveSlot && isExporting && slotIdx === 0);
+            const slotProgress = slotData.status === 'rendering' ? (slotData.progress ?? 0) : (isExporting && slotIdx === 0 ? exportProgress : 0);
+            const slotTitle = slotData.title || (isExporting && slotIdx === 0 && activeJob ? activeJob.fileName : `Slot ${slotIdx + 1}`);
 
             return (
               <div 
