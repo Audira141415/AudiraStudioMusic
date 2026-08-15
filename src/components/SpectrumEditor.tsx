@@ -2411,13 +2411,59 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
               </label>
             </div>
 
-            {/* Sliders Grid Block */}
-            <div className="space-y-4 pt-1">
-              
-              {/* Width / Resize */}
+            {/* Kartu Pengontrol Tinggi & Ukuran Batang Spektrum */}
+            <div className="bg-[#FFF8E7] border-2 border-black p-3.5 rounded-xl space-y-3 shadow-[2px_2px_0px_#000]">
+              <div className="text-[10px] font-black uppercase tracking-wider text-black flex items-center justify-between">
+                <span>📏 Tinggi & Panjang Batang Spektrum</span>
+                <span className="bg-[#8B5CF6] text-white text-[9px] px-2 py-0.5 rounded border border-black font-mono">
+                  {(settings.specHeight * 100).toFixed(0)}%
+                </span>
+              </div>
+
+              {/* Instant Height Preset Buttons */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { label: '🤏 Pendek', val: 0.25 },
+                  { label: '📊 Sedang', val: 0.50 },
+                  { label: '🚀 Panjang', val: 1.00 },
+                  { label: '⚡ Ekstrem', val: 1.50 }
+                ].map(p => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => onChange('specHeight', p.val)}
+                    className={`py-1 px-1 border border-black rounded text-[9px] font-black text-center transition-all cursor-pointer ${
+                      Math.abs(settings.specHeight - p.val) < 0.05
+                        ? 'bg-[#8B5CF6] text-white shadow-[1px_1px_0px_#000]'
+                        : 'bg-white text-black hover:bg-amber-100'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Slider Tinggi Amplitudo Batang */}
+              <div className="space-y-1 pt-1">
+                <div className="flex justify-between items-center text-[10px] font-black uppercase text-black">
+                  <span>Tinggi Amplitudo Batang:</span>
+                  <span>{settings.specHeight.toFixed(2)}x</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.05"
+                  max="2.50"
+                  step="0.05"
+                  value={settings.specHeight}
+                  onChange={(e) => onChange('specHeight', parseFloat(e.target.value))}
+                  className="w-full neo-slider cursor-pointer"
+                />
+              </div>
+
+              {/* Slider Lebar Area Spektrum */}
               <div className="space-y-1">
-                <div className="flex justify-between items-center text-[10px] font-bold text-black">
-                  <span>Lebar Area (Resize):</span>
+                <div className="flex justify-between items-center text-[10px] font-black uppercase text-black">
+                  <span>Lebar Bentang Spektrum:</span>
                   <span>{settings.specWidthPct.toFixed(2)}x</span>
                 </div>
                 <input
@@ -2427,10 +2473,14 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                   step="0.05"
                   value={settings.specWidthPct}
                   onChange={(e) => onChange('specWidthPct', parseFloat(e.target.value))}
-                  className="w-full neo-slider"
+                  className="w-full neo-slider cursor-pointer"
                 />
               </div>
+            </div>
 
+            {/* Sliders Grid Block (Sisa Kontrol Tambahan) */}
+            <div className="space-y-4 pt-1">
+              
               {/* Scale */}
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px] font-bold text-black">
@@ -2444,23 +2494,6 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                   step="0.1"
                   value={settings.specScale}
                   onChange={(e) => onChange('specScale', parseFloat(e.target.value))}
-                  className="w-full neo-slider"
-                />
-              </div>
-
-              {/* Amplitude Height */}
-              <div className="space-y-1">
-                <div className="flex justify-between items-center text-[10px] font-bold text-black">
-                  <span>Tinggi Amplitudo:</span>
-                  <span>{settings.specHeight.toFixed(2)}x</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.10"
-                  max="3.00"
-                  step="0.05"
-                  value={settings.specHeight}
-                  onChange={(e) => onChange('specHeight', parseFloat(e.target.value))}
                   className="w-full neo-slider"
                 />
               </div>

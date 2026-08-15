@@ -976,7 +976,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               dataIdx = endFreq - 1 - Math.floor((i / numBars) * freqSpan);
             }
             const rawVal = dataArray[dataIdx] || 0;
-            const val = (rawVal / 255) * 350 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
+            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
             const x = startX + i * (barW + barGap);
             const y = 0; // Relative to translate
 
@@ -997,7 +997,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               dataIdx = endFreq - 1 - Math.floor((i / halfBars) * freqSpan);
             }
             const rawVal = dataArray[dataIdx] || 0;
-            const val = (rawVal / 255) * 350 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
+            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
             
             // Draw right side
             const xRight = i * (barW + barGap);
@@ -1030,7 +1030,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               dataIdx = endFreq - 1 - Math.floor((i / numBars) * freqSpan);
             }
             const rawVal = dataArray[dataIdx] || 0;
-            const val = (rawVal / 255) * 350 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
+            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
             const x = startX + i * (barW + barGap);
             
             const numBlocks = Math.floor(val / (blockSize + blockGap));
