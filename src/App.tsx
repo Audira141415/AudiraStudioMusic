@@ -38,6 +38,7 @@ import { PresetTemplateModal } from './components/PresetTemplateModal';
 import { AudioEqualizerModal } from './components/AudioEqualizerModal';
 import { BatchMultiSongModal } from './components/BatchMultiSongModal';
 import { AppUserGuideModal } from './components/AppUserGuideModal';
+import { UserGuideView } from './components/UserGuideView';
 
 // Conditional import of Tauri api to prevent browser crash
 let invokeTauri: any = null;
@@ -437,8 +438,8 @@ export default function App() {
       handleBgUploadDirect(file);
     }
   };
-  // State for Active View/Tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'editor' | 'thumbnail' | 'copilot' | 'history' | 'settings' | 'queue' | 'profile'>('dashboard');
+  // State for Active View/Tab (Starts at 'landing' by default when application opens)
+  const [activeTab, setActiveTab] = useState<'landing' | 'dashboard' | 'editor' | 'thumbnail' | 'copilot' | 'history' | 'settings' | 'queue' | 'profile' | 'guide'>('landing');
   const [activeStep, setActiveStep] = useState<number | null>(1);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -1939,11 +1940,15 @@ export default function App() {
 
           <div className="w-full px-2 flex flex-col gap-3">
             <button
-              onClick={() => setIsUserGuideOpen(true)}
-              className="p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full bg-emerald-100 hover:bg-emerald-200 text-emerald-950 shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2.5px_2.5px_0px_#000] cursor-pointer"
-              title="Panduan Penggunaan Studio & FAQ Interaktif"
+              onClick={() => setActiveTab('guide')}
+              className={`p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full ${
+                activeTab === 'guide'
+                  ? 'bg-[#8B5CF6] text-white shadow-[2px_2px_0px_#000] translate-y-[-1px]'
+                  : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-950 shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2.5px_2.5px_0px_#000]'
+              }`}
+              title="Panduan Penggunaan Studio & Manual Hub"
             >
-              <BookOpen className="w-5 h-5 text-emerald-800" />
+              <BookOpen className="w-5 h-5" />
               <span>Panduan</span>
             </button>
 
@@ -2754,6 +2759,17 @@ export default function App() {
               accountsList={userAccountsList}
               onUpdateUserRole={handleUpdateUserRole}
               onAddLicenseKey={handleAddLicenseKey}
+            />
+          </main>
+        )}
+
+        {activeTab === 'guide' && (
+          <main className="flex-1 overflow-y-auto bg-[#FAF6ED]">
+            <UserGuideView
+              onNavigateToStudio={() => setActiveTab('editor')}
+              onNavigateToQueue={() => setActiveTab('queue')}
+              onNavigateToHistory={() => setActiveTab('history')}
+              onApplyRatio={(ratio) => setSettings((prev: any) => ({ ...prev, aspectRatio: ratio }))}
             />
           </main>
         )}
