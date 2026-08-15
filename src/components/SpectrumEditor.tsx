@@ -2197,67 +2197,93 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
               </label>
             </div>
 
-            {/* Shape and Color Row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-black/60 block">Bentuk Spektrum Aktif</span>
-                <select
-                  value={settings.visualizerType}
-                  onChange={(e) => onChange('visualizerType', e.target.value)}
-                  className="w-full bg-[#FBBF24] border-2 border-black rounded p-2.5 font-bold text-xs shadow-[2px_2px_0px_#000] outline-none"
-                >
-                  <option value="wave">Dynamic Audio Wave (Gelombang)</option>
-                  <option value="bars">Frequency Spectrum Bars (Batang)</option>
-                  <option value="circular">Circular Radial Ring</option>
-                  <option value="symmetric">Symmetric Mirror Bars</option>
-                  <option value="retro">Retro Stacked Blocks</option>
-                  <option value="double-circular">Double Concentric Circular</option>
-                  <option value="radial-star">Radial Starburst (Spikes)</option>
-                  <option value="wave-fill">Mountain Wave Area Fill</option>
-                  <option value="liquid-wave">✨ Modern Abstract Liquid Wave (Cairan Estetik)</option>
-                  <option value="glow-particles">✨ Neon Glowing Pulse Particles (Partikel Spektrum)</option>
-                  <option value="cyber-grid">✨ Cyberpunk Digital Grid Matrix (Cyber)</option>
-                  <option value="ambient-glow">✨ Lofi Ambient Circle Glow (Glow Lingkaran)</option>
-                </select>
-              </div>
+            {/* Bentuk Spektrum Aktif */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-black block">
+                Bentuk Spektrum Aktif:
+              </label>
+              <select
+                value={settings.visualizerType}
+                onChange={(e) => onChange('visualizerType', e.target.value)}
+                className="w-full bg-[#FBBF24] border-2 border-black rounded-lg p-2.5 font-bold text-xs shadow-[2px_2px_0px_#000] outline-none cursor-pointer"
+              >
+                <option value="wave">Dynamic Audio Wave (Gelombang)</option>
+                <option value="bars">Frequency Spectrum Bars (Batang)</option>
+                <option value="circular">Circular Radial Ring</option>
+                <option value="symmetric">Symmetric Mirror Bars</option>
+                <option value="retro">Retro Stacked Blocks</option>
+                <option value="double-circular">Double Concentric Circular</option>
+                <option value="radial-star">Radial Starburst (Spikes)</option>
+                <option value="wave-fill">Mountain Wave Area Fill</option>
+                <option value="liquid-wave">✨ Modern Abstract Liquid Wave (Cairan Estetik)</option>
+                <option value="glow-particles">✨ Neon Glowing Pulse Particles (Partikel Spektrum)</option>
+                <option value="cyber-grid">✨ Cyberpunk Digital Grid Matrix (Cyber)</option>
+                <option value="ambient-glow">✨ Lofi Ambient Circle Glow (Glow Lingkaran)</option>
+              </select>
+            </div>
 
-            {/* Tipe Pewarnaan Spektrum */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Tipe & Warna Spektrum */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-black/60 block">Tipe Warna Spektrum</span>
+                <label className="text-[10px] font-black uppercase tracking-wider text-black block">
+                  Tipe Warna:
+                </label>
                 <select
                   value={settings.barColorType || 'solid'}
                   onChange={(e) => onChange('barColorType', e.target.value)}
-                  className="w-full bg-[#FBBF24] border-2 border-black rounded p-2.5 font-bold text-xs shadow-[2px_2px_0px_#000] outline-none"
+                  className="w-full bg-[#FBBF24] border-2 border-black rounded-lg p-2.5 font-bold text-xs shadow-[2px_2px_0px_#000] outline-none cursor-pointer"
                 >
                   <option value="solid">Satu Warna (Solid)</option>
                   <option value="gradient">Dua Warna (Gradasi)</option>
                 </select>
               </div>
+
               <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-black/60 block">Warna Pertama</span>
-                <input
-                  type="color"
-                  value={settings.barColor.startsWith('#') ? settings.barColor : '#8B5CF6'}
-                  onChange={(e) => onChange('barColor', e.target.value)}
-                  className="w-full h-9 border-2 border-black rounded cursor-pointer bg-transparent"
-                />
+                <label className="text-[10px] font-black uppercase tracking-wider text-black block">
+                  Warna Utama:
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={settings.barColor.startsWith('#') ? settings.barColor : '#8B5CF6'}
+                    onChange={(e) => onChange('barColor', e.target.value)}
+                    className="w-10 h-9 border-2 border-black rounded-lg cursor-pointer bg-white p-0.5 shadow-[1.5px_1.5px_0px_#000] shrink-0"
+                  />
+                  <input
+                    type="text"
+                    value={settings.barColor}
+                    onChange={(e) => onChange('barColor', e.target.value)}
+                    className="flex-1 neo-input text-xs uppercase font-mono p-2"
+                  />
+                </div>
               </div>
             </div>
 
+            {/* Warna Kedua (Jika Gradasi) */}
             {settings.barColorType === 'gradient' && (
-              <div className="grid grid-cols-2 gap-4 bg-[#FFF8E7] border-2 border-black p-3.5 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#FFF8E7] border-2 border-black p-3.5 rounded-xl shadow-[2px_2px_0px_#000]">
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-black block">Warna Kedua</span>
-                  <input
-                    type="color"
-                    value={settings.barColor2 || '#A78BFA'}
-                    onChange={(e) => onChange('barColor2', e.target.value)}
-                    className="w-full h-9 border-2 border-black rounded cursor-pointer bg-transparent"
-                  />
+                  <label className="text-[10px] font-black uppercase tracking-wider text-black block">
+                    Warna Kedua:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={settings.barColor2 || '#A78BFA'}
+                      onChange={(e) => onChange('barColor2', e.target.value)}
+                      className="w-10 h-9 border-2 border-black rounded-lg cursor-pointer bg-white p-0.5 shadow-[1.5px_1.5px_0px_#000] shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={settings.barColor2 || '#A78BFA'}
+                      onChange={(e) => onChange('barColor2', e.target.value)}
+                      className="flex-1 neo-input text-xs uppercase font-mono p-2"
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-1">
-                  <div className="flex justify-between items-center text-[9px] font-bold text-black">
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase text-black">
                     <span>Sudut Gradasi:</span>
                     <span>{settings.barGradientAngle || 90}°</span>
                   </div>
@@ -2272,53 +2298,53 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Fokus Frekuensi */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-black block">
+                Fokus Frekuensi Audio:
+              </label>
+              <select
+                value={settings.specFocus}
+                onChange={(e) => onChange('specFocus', e.target.value)}
+                className="w-full bg-[#FBBF24] border-2 border-black rounded-lg p-2.5 font-bold text-xs shadow-[2px_2px_0px_#000] outline-none cursor-pointer"
+              >
+                <option>Semua Frekuensi (Standard Full Range)</option>
+                <option>Low-End (Fokus Nada Bass)</option>
+                <option>Mid-Range (Fokus Vokal & Instrumen)</option>
+                <option>High-End (Fokus Treble & Cymbal)</option>
+              </select>
             </div>
 
-            {/* Focus and Checkboxes Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-black/60 block">Fokus Frekuensi</span>
-                <select
-                  value={settings.specFocus}
-                  onChange={(e) => onChange('specFocus', e.target.value)}
-                  className="w-full bg-[#FBBF24] border-2 border-black rounded p-2.5 font-bold text-xs shadow-[2px_2px_0px_#000] outline-none"
-                >
-                  <option>Semua Frekuensi (Standard)</option>
-                  <option>Low-End (Bass)</option>
-                  <option>Mid-Range (Vocals)</option>
-                  <option>High-End (Treble)</option>
-                </select>
-              </div>
+            {/* Checkbox Efek Neon Glow & Beat Pulse Cards */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <label className="flex items-center gap-2 p-3 bg-white border-2 border-black rounded-xl cursor-pointer shadow-[2px_2px_0px_#000] hover:bg-amber-50 transition-all select-none">
+                <input
+                  type="checkbox"
+                  id="wizard-spec-glow"
+                  checked={settings.specGlow}
+                  onChange={(e) => onChange('specGlow', e.target.checked)}
+                  className="w-4 h-4 border-2 border-black bg-white rounded cursor-pointer accent-black"
+                />
+                <span className="text-[10px] font-black uppercase text-black flex items-center gap-1">
+                  <span>Glow Neon</span>
+                  <span>🌟</span>
+                </span>
+              </label>
 
-              <div className="flex items-center justify-around pt-5">
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    id="wizard-spec-glow"
-                    checked={settings.specGlow}
-                    onChange={(e) => onChange('specGlow', e.target.checked)}
-                    className="w-4 h-4 border-2 border-black bg-white rounded cursor-pointer accent-black"
-                  />
-                  <label htmlFor="wizard-spec-glow" className="text-[9px] font-black uppercase text-black cursor-pointer flex items-center gap-1">
-                    <span>Glow Neon</span>
-                    <span>🌟</span>
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    id="wizard-spec-pulse"
-                    checked={settings.specPulse}
-                    onChange={(e) => onChange('specPulse', e.target.checked)}
-                    className="w-4 h-4 border-2 border-black bg-white rounded cursor-pointer accent-black"
-                  />
-                  <label htmlFor="wizard-spec-pulse" className="text-[9px] font-black uppercase text-black cursor-pointer flex items-center gap-0.5">
-                    <span>Beat Pulse</span>
-                    <span>💟</span>
-                  </label>
-                </div>
-              </div>
+              <label className="flex items-center gap-2 p-3 bg-white border-2 border-black rounded-xl cursor-pointer shadow-[2px_2px_0px_#000] hover:bg-amber-50 transition-all select-none">
+                <input
+                  type="checkbox"
+                  id="wizard-spec-pulse"
+                  checked={settings.specPulse}
+                  onChange={(e) => onChange('specPulse', e.target.checked)}
+                  className="w-4 h-4 border-2 border-black bg-white rounded cursor-pointer accent-black"
+                />
+                <span className="text-[10px] font-black uppercase text-black flex items-center gap-1">
+                  <span>Beat Pulse</span>
+                  <span>💓</span>
+                </span>
+              </label>
             </div>
 
             {/* Sliders Grid Block */}
