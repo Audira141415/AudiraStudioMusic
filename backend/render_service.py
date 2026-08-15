@@ -1048,6 +1048,60 @@ def apply_camera_shake(frame, t, intensity, width, height):
     cropped = frame[offset_y:offset_y + height - 40, offset_x:offset_x + width - 40]
     return cv2.resize(cropped, (width, height))
 
+def draw_cover_card(frame, logo_path, bg_path, settings, vol_factor, p_width, p_height, t):
+    if not settings.get("showCoverCard", False):
+        return
+
+    card_w = int(p_width * 0.34)
+    card_h = int(card_w * 1.25)
+    cx = int(p_width / 2)
+    cy = int(p_height / 2)
+
+    x1 = max(0, cx - int(card_w / 2))
+    y1 = max(0, cy - int(card_h / 2))
+    x2 = min(p_width, x1 + card_w)
+    y2 = min(p_height, y1 + card_h)
+
+    if x2 <= x1 or y2 <= y1:
+        return
+
+    pulse = 1.0 + (vol_factor * 0.05) if settings.get("coverPulseSync", True) else 1.0
+    
+    # Glassmorphism dark background card overlay
+    overlay = frame[y1:y2, x1:x2].copy()
+    cv2.rectangle(overlay, (0, 0), (x2 - x1, y2 - y1), (25, 20, 35), -1)
+    frame[y1:y2, x1:x2, :3] = cv2.addWeighted(frame[y1:y2, x1:x2, :3], 0.4, overlay[:, :, :3], 0.6, 0.0)
+    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 255), 2)
+
+    # Draw Spotify Album Art
+    img_src = logo_path if (logo_path and os.path.exists(logo_path)) else bg_path
+    if img_src and os.path.exists(str(img_src)):
+        try:
+            cover_img = cv2.imread(str(img_src))
+            if cover_img is not None:
+                img_sz = int(card_w * 0.75 * pulse)
+                img_x1 = max(0, cx - int(img_sz / 2))
+                img_y1 = max(0, y1 + int(card_h * 0.08))
+                img_x2 = min(p_width, img_x1 + img_sz)
+                img_y2 = min(p_height, img_y1 + img_sz)
+                if img_x2 > img_x1 and img_y2 > img_y1:
+                    resized = cv2.resize(cover_img, (img_x2 - img_x1, img_y2 - img_y1))
+                    frame[img_y1:img_y2, img_x1:img_x2, :3] = resized[:, :, :3]
+        except Exception:
+            pass
+
+def draw_texture_overlays(frame, settings, t, p_width, p_height):
+    vfx_tex = settings.get("vfxTexture", "none")
+    if not vfx_tex or vfx_tex == "none" or vfx_tex == "Tanpa Filter Tekstur (Standard)":
+        return
+
+    if "Film" in vfx_tex or "Vintage" in vfx_tex:
+        for y in range(0, p_height, 4):
+            frame[y:y+1, :, :3] = (frame[y:y+1, :, :3] * 0.85).astype(np.uint8)
+    elif "CRT" in vfx_tex:
+        for y in range(0, p_height, 2):
+            frame[y:y+1, :, :3] = (frame[y:y+1, :, :3] * 0.75).astype(np.uint8)
+
 def render_video(config, job_ref=None):
     # Set Windows Process Priority to HIGH to avoid OS Power Throttling and run on P-Cores
     import sys
@@ -1198,12 +1252,20 @@ def render_video(config, job_ref=None):
         print(f"WARNING: Audio peaks extraction failed: {e}")
         sys.stdout.flush()
     res_str = settings.get("resolution", "1080p")
+    aspect_ratio = settings.get("aspectRatio", "16:9")
+
     if res_str == "720p":
         width, height = 1280, 720
     elif res_str == "4k":
         width, height = 3840, 2160
     else: # 1080p
         width, height = 1920, 1080
+
+    if aspect_ratio == "9:16":
+        width, height = height, width
+    elif aspect_ratio == "1:1":
+        min_dim = min(width, height)
+        width, height = min_dim, min_dim
 
     # Print detailed configuration and file sizes for user history console
     try:
@@ -2249,6 +2311,10 @@ def render_video(config, job_ref=None):
                     
                     # 6. Draw Circular Logo Overlay
                     draw_logo_overlay(frame, logo_img_cache if logo_img_cache is not None else logo_path, settings, vol_factor, p_width, p_height)
+                    
+                    # 6.5 Draw Dual-Layer Spotify Album Art Badge Cover Card & Texture Overlays
+                    draw_cover_card(frame, logo_path, bg_path, settings, vol_factor, p_width, p_height, t)
+                    draw_texture_overlays(frame, settings, t, p_width, p_height)
                     
                     # 7. Draw Progress Bar
                     if settings.get("showProgressBar", False):
