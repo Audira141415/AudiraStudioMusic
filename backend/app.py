@@ -75,17 +75,17 @@ def get_parallel_slots_status():
 
 def auto_suffix_output_path(output_path, existing_paths):
     """
-    If output_path conflicts with any active/queued job's output path,
-    auto-suffix with _1, _2, etc. to avoid overwriting.
+    If output_path already exists on DISK or conflicts with any active/queued job's output path,
+    auto-suffix with _1, _2, etc. to guarantee NO file is EVER overwritten!
     E.g.: exports/visualizer.mp4 -> exports/visualizer_1.mp4
     """
-    if output_path not in existing_paths:
+    if output_path not in existing_paths and not os.path.exists(output_path):
         return output_path
     base, ext = os.path.splitext(output_path)
     counter = 1
     while True:
         candidate = f"{base}_{counter}{ext}"
-        if candidate not in existing_paths:
+        if candidate not in existing_paths and not os.path.exists(candidate):
             return candidate
         counter += 1
 

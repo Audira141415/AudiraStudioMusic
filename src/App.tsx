@@ -627,10 +627,28 @@ export default function App() {
   };
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement> | File) => {
+    let file: File | null = null;
     if (e instanceof File) {
-      setAudioFile(e);
+      file = e;
     } else if (e && 'target' in e && e.target.files && e.target.files[0]) {
-      setAudioFile(e.target.files[0]);
+      file = e.target.files[0];
+    }
+    if (file) {
+      setAudioFile(file);
+      const rawName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const cleanName = rawName.replace(/_/g, ' ');
+      let title = cleanName;
+      let artist = 'Artis';
+      if (cleanName.includes('-')) {
+        const parts = cleanName.split('-');
+        artist = parts[0].trim();
+        title = parts.slice(1).join('-').trim();
+      }
+      handleSettingChange('textTitle', title);
+      handleSettingChange('textArtist', artist);
+
+      const safeFilename = `${artist} - ${title}.mp4`.replace(/[\\/:*?"<>|]/g, '_');
+      handleExportConfigChange('outputPath', `F:/AudiraMusic/AudiraStudioMusic/${safeFilename}`);
     }
   };
 
