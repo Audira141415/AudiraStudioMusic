@@ -938,9 +938,9 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         const totalWidth = numBars * (barW + barGap) - barGap;
         const startX = -totalWidth / 2;
 
-        // D. Setup Focus Slicing
+        // D. Setup Focus Slicing & Frequency Equalization
         let startFreq = 0;
-        let endFreq = dataArray.length;
+        let endFreq = Math.floor(dataArray.length * 0.60); // Default to active 0 - 13.5kHz musical range
 
         const getLayerGradient = (x1: number, y1: number, x2: number, y2: number) => {
           if (layer.barColorType === 'gradient') {
@@ -956,27 +956,30 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
 
         if (layer.specFocus === 'Low-End (Bass)') {
           startFreq = 0;
-          endFreq = Math.floor(dataArray.length * 0.2);
+          endFreq = Math.floor(dataArray.length * 0.18);
         } else if (layer.specFocus === 'Mid-Range (Vocals)') {
-          startFreq = Math.floor(dataArray.length * 0.2);
-          endFreq = Math.floor(dataArray.length * 0.65);
+          startFreq = Math.floor(dataArray.length * 0.15);
+          endFreq = Math.floor(dataArray.length * 0.50);
         } else if (layer.specFocus === 'High-End (Treble)') {
-          startFreq = Math.floor(dataArray.length * 0.65);
-          endFreq = dataArray.length;
+          startFreq = Math.floor(dataArray.length * 0.40);
+          endFreq = Math.floor(dataArray.length * 0.85);
         }
-        const freqSpan = endFreq - startFreq;
+        const freqSpan = Math.max(1, endFreq - startFreq);
 
         // E. Beat Pulse multiplier
         const specPulseAmp = layer.specPulse ? (1.0 + volumeFactor * 0.45) : 1.0;
 
         if (layer.visualizerType === 'bars') {
           for (let i = 0; i < numBars; i++) {
-            let dataIdx = startFreq + Math.floor((i / numBars) * freqSpan);
+            const progress = i / numBars;
+            const normIndex = Math.pow(progress, 0.70); // Logarithmic curve spreads active frequencies across all bars
+            let dataIdx = startFreq + Math.floor(normIndex * freqSpan);
             if (layer.specReverse === 'Reverse (Dibalik)') {
-              dataIdx = endFreq - 1 - Math.floor((i / numBars) * freqSpan);
+              dataIdx = endFreq - 1 - Math.floor(normIndex * freqSpan);
             }
             const rawVal = dataArray[dataIdx] || 0;
-            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
+            const eqLift = 1.0 + progress * 0.85; // High-end frequency boost to keep bars lively to the end
+            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp * eqLift;
             const x = startX + i * (barW + barGap);
             const y = 0; // Relative to translate
 
@@ -992,12 +995,15 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         } else if (layer.visualizerType === 'symmetric') {
           const halfBars = Math.floor(numBars / 2);
           for (let i = 0; i < halfBars; i++) {
-            let dataIdx = startFreq + Math.floor((i / halfBars) * freqSpan);
+            const progress = i / halfBars;
+            const normIndex = Math.pow(progress, 0.70);
+            let dataIdx = startFreq + Math.floor(normIndex * freqSpan);
             if (layer.specReverse === 'Reverse (Dibalik)') {
-              dataIdx = endFreq - 1 - Math.floor((i / halfBars) * freqSpan);
+              dataIdx = endFreq - 1 - Math.floor(normIndex * freqSpan);
             }
             const rawVal = dataArray[dataIdx] || 0;
-            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
+            const eqLift = 1.0 + progress * 0.85;
+            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp * eqLift;
             
             // Draw right side
             const xRight = i * (barW + barGap);
@@ -1025,12 +1031,15 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           const blockSize = 6;
           const blockGap = 2;
           for (let i = 0; i < numBars; i++) {
-            let dataIdx = startFreq + Math.floor((i / numBars) * freqSpan);
+            const progress = i / numBars;
+            const normIndex = Math.pow(progress, 0.70);
+            let dataIdx = startFreq + Math.floor(normIndex * freqSpan);
             if (layer.specReverse === 'Reverse (Dibalik)') {
-              dataIdx = endFreq - 1 - Math.floor((i / numBars) * freqSpan);
+              dataIdx = endFreq - 1 - Math.floor(normIndex * freqSpan);
             }
             const rawVal = dataArray[dataIdx] || 0;
-            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp;
+            const eqLift = 1.0 + progress * 0.85;
+            const val = (rawVal / 255) * 200 * (liveSettings.sensitivity || 1.2) * ampHeight * specPulseAmp * eqLift;
             const x = startX + i * (barW + barGap);
             
             const numBlocks = Math.floor(val / (blockSize + blockGap));
