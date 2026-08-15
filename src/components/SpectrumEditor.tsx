@@ -15,6 +15,7 @@ import {
   Eye,
   RotateCcw
 } from 'lucide-react';
+import { Tooltip } from './Tooltip';
 
 interface SpectrumEditorProps {
   isLocked?: boolean;
@@ -1221,54 +1222,58 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                 <span className="text-[9px] font-bold text-black block">Pilih Rasio Layar Video:</span>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { id: '16:9', label: '16:9 YT Video' },
-                    { id: '9:16', label: '9:16 Shorts/TikTok' },
-                    { id: '1:1', label: '1:1 IG Feed' }
+                    { id: '16:9', label: '16:9 YT Video', desc: 'Resolusi Widescreen 1920x1080 untuk YouTube Video' },
+                    { id: '9:16', label: '9:16 Shorts/TikTok', desc: 'Resolusi Vertikal 1080x1920 untuk Shorts & TikTok' },
+                    { id: '1:1', label: '1:1 IG Feed', desc: 'Resolusi Persegi 1080x1080 untuk Instagram Feed' }
                   ].map(ar => (
-                    <button
-                      key={ar.id}
-                      type="button"
-                      onClick={() => onChange('aspectRatio', ar.id)}
-                      className={`py-1.5 px-1 border border-black rounded text-[9px] font-black text-center transition-all cursor-pointer ${
-                        (settings.aspectRatio || '16:9') === ar.id
-                          ? 'bg-purple-600 text-white shadow-[1.5px_1.5px_0px_#000]'
-                          : 'bg-white text-black hover:bg-purple-50'
-                      }`}
-                    >
-                      {ar.label}
-                    </button>
+                    <Tooltip key={ar.id} content={ar.desc} position="top" badge={ar.id}>
+                      <button
+                        type="button"
+                        onClick={() => onChange('aspectRatio', ar.id)}
+                        className={`w-full py-1.5 px-1 border border-black rounded text-[9px] font-black text-center transition-all cursor-pointer ${
+                          (settings.aspectRatio || '16:9') === ar.id
+                            ? 'bg-purple-600 text-white shadow-[1.5px_1.5px_0px_#000]'
+                            : 'bg-white text-black hover:bg-purple-50'
+                        }`}
+                      >
+                        {ar.label}
+                      </button>
+                    </Tooltip>
                   ))}
                 </div>
               </div>
 
               {/* Quick Modals Launcher Grid */}
               <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-black/10">
-                <button
-                  type="button"
-                  onClick={onOpenPresetModal}
-                  className="py-1.5 px-1 bg-yellow-400 hover:bg-yellow-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
-                  title="Buka Preset Template (.json)"
-                >
-                  🎨 Presets (.json)
-                </button>
+                <Tooltip content="Buka galeri templat preset visualizer siap pakai" position="top" badge="PRESET">
+                  <button
+                    type="button"
+                    onClick={onOpenPresetModal}
+                    className="w-full py-1.5 px-1 bg-yellow-400 hover:bg-yellow-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
+                  >
+                    🎨 Presets (.json)
+                  </button>
+                </Tooltip>
 
-                <button
-                  type="button"
-                  onClick={onOpenEqModal}
-                  className="py-1.5 px-1 bg-emerald-400 hover:bg-emerald-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
-                  title="Buka 10-Band Graphic Equalizer"
-                >
-                  🎚️ 10-Band EQ
-                </button>
+                <Tooltip content="Atur frekuensi EQ 10-Band & efek Reverb akustik" position="top" badge="10-BAND EQ">
+                  <button
+                    type="button"
+                    onClick={onOpenEqModal}
+                    className="w-full py-1.5 px-1 bg-emerald-400 hover:bg-emerald-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
+                  >
+                    🎚️ 10-Band EQ
+                  </button>
+                </Tooltip>
 
-                <button
-                  type="button"
-                  onClick={onOpenBatchModal}
-                  className="py-1.5 px-1 bg-blue-400 hover:bg-blue-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
-                  title="Batch Render Banyak Lagu Sekaligus"
-                >
-                  📂 Batch Multi-Lagu
-                </button>
+                <Tooltip content="Otomatisasi render puluhan lagu sekaligus dalam antrean paralel" position="top" badge="BATCH">
+                  <button
+                    type="button"
+                    onClick={onOpenBatchModal}
+                    className="w-full py-1.5 px-1 bg-sky-400 hover:bg-sky-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
+                  >
+                    📁 Batch Multi-Song
+                  </button>
+                </Tooltip>
               </div>
             </div>
 
