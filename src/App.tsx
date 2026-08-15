@@ -29,6 +29,7 @@ import { BatchQueuePanel } from './components/BatchQueuePanel';
 import { LandingPageView } from './components/LandingPageView';
 import { QueueView } from './components/QueueView';
 import { DirectDownloadModal } from './components/DirectDownloadModal';
+import { AudioStemSeparatorModal } from './components/AudioStemSeparatorModal';
 
 // Conditional import of Tauri api to prevent browser crash
 let invokeTauri: any = null;
@@ -309,6 +310,7 @@ export default function App() {
 
   // State for Direct Download Modal (Audira Clip Engine)
   const [isDirectDownloadOpen, setIsDirectDownloadOpen] = useState(false);
+  const [isStemModalOpen, setIsStemModalOpen] = useState(false);
 
   const handleOpenDirectDownload = (_type: 'audio' | 'background' = 'audio') => {
     setIsDirectDownloadOpen(true);
@@ -1593,6 +1595,7 @@ export default function App() {
                   setBgFile(new File([], name));
                 }}
                 onOpenDirectDownload={handleOpenDirectDownload}
+                onOpenStemSeparator={() => setIsStemModalOpen(true)}
                 audioName={audioFile ? audioFile.name : null}
                 bgNames={bgFiles.map(f => f.name)}
                 activeStep={activeStep}
@@ -2183,6 +2186,15 @@ export default function App() {
           isOpen={isDirectDownloadOpen}
           onClose={() => setIsDirectDownloadOpen(false)}
           onSelectDownloadedFile={handleSelectDownloadedFile}
+        />
+        {/* AI Audio Stem Separator Modal (FFmpeg DSP) */}
+        <AudioStemSeparatorModal
+          isOpen={isStemModalOpen}
+          onClose={() => setIsStemModalOpen(false)}
+          audioFile={audioFile}
+          audioUrl={audioUrl}
+          onSelectInstrumental={handleAudioUpload}
+          onSelectVocals={(file) => setVoiceoverFile(file)}
         />
       </div>
 

@@ -623,7 +623,91 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode('utf-8'))
             return
-        
+
+        elif parsed_url.path == "/separate_stems":
+            content_type = self.headers.get('Content-Type', '')
+            backend_dir = os.path.dirname(os.path.abspath(__file__))
+            downloads_dir = os.path.join(backend_dir, "downloads")
+            os.makedirs(downloads_dir, exist_ok=True)
+
+            src_audio_path = None
+            if 'multipart/form-data' in content_type:
+                try:
+                    content_length = int(self.headers.get('Content-Length', 0))
+                    body = self.rfile.read(content_length)
+                    from email.parser import BytesParser
+                    from email.policy import default
+                    msg_bytes = f"Content-Type: {content_type}\r\n\r\n".encode('ascii') + body
+                    msg = BytesParser(policy=default).parsebytes(msg_bytes)
+                    for part in msg.iter_parts():
+                        payload = part.get_payload(decode=True)
+                        if payload:
+                            src_audio_path = os.path.join(downloads_dir, f"temp_src_{int(time.time())}.mp3")
+                            with open(src_audio_path, "wb") as f:
+                                f.write(payload)
+                            break
+                except Exception as e:
+                    self.send_response(400)
+                    self.send_header("Content-Type", "application/json")
+                    self._send_cors_headers()
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode('utf-8'))
+                    return
+
+            if not src_audio_path or not os.path.exists(src_audio_path):
+                for fname in os.listdir(backend_dir):
+                    if fname.endswith("_audio.mp3") or fname == "temp_test_audio.mp3":
+                        src_audio_path = os.path.join(backend_dir, fname)
+                        break
+
+            if not src_audio_path or not os.path.exists(src_audio_path):
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": "Berkas audio sumber tidak ditemukan."}).encode('utf-8'))
+                return
+
+            timestamp = int(time.time())
+            inst_filename = f"stem_inst_{timestamp}.mp3"
+            vocals_filename = f"stem_vocals_{timestamp}.mp3"
+            inst_path = os.path.join(downloads_dir, inst_filename)
+            vocals_path = os.path.join(downloads_dir, vocals_filename)
+
+            try:
+                cmd_inst = [
+                    "ffmpeg", "-y", "-i", src_audio_path,
+                    "-af", "pan=stereo|c0=0.5*c0-0.5*c1|c1=0.5*c1-0.5*c0, volume=1.8",
+                    "-b:a", "192k", inst_path
+                ]
+                subprocess.run(cmd_inst, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                cmd_voc = [
+                    "ffmpeg", "-y", "-i", src_audio_path,
+                    "-af", "pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1, highpass=f=220, lowpass=f=4500, volume=1.5",
+                    "-b:a", "192k", vocals_path
+                ]
+                subprocess.run(cmd_voc, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "instrumentalPath": inst_path,
+                    "vocalsPath": vocals_path,
+                    "instrumentalUrl": f"http://localhost:1426/downloads/{inst_filename}",
+                    "vocalsUrl": f"http://localhost:1426/downloads/{vocals_filename}"
+                }).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": f"FFmpeg Stem Separator failed: {e}"}).encode('utf-8'))
+            return
+
         if parsed_url.path == "/export":
             content_type = self.headers.get('Content-Type', '')
             config = None

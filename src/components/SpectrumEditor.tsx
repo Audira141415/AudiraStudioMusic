@@ -40,6 +40,7 @@ interface SpectrumEditorProps {
   onSaveTemplate?: () => void;
   onLoadTemplate?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onOpenDirectDownload?: (type?: 'audio' | 'background') => void;
+  onOpenStemSeparator?: () => void;
 }
 
 const PRESETS = {
@@ -224,7 +225,8 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
   lrcFileName,
   onSaveTemplate,
   onLoadTemplate,
-  onOpenDirectDownload
+  onOpenDirectDownload,
+  onOpenStemSeparator
 }) => {
   const toggleSection = (idx: number) => {
     const nextStep = activeStep === idx ? null : idx;
@@ -728,6 +730,18 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                   </button>
                 )}
               </div>
+
+              {onOpenStemSeparator && (
+                <button
+                  type="button"
+                  onClick={onOpenStemSeparator}
+                  className="w-full py-2 bg-[#CCFBF1] hover:bg-teal-100 text-teal-900 border-2 border-black rounded-lg font-black text-[10px] uppercase tracking-wider shadow-[2px_2px_0px_#000] active:translate-y-[1px] cursor-pointer flex items-center justify-center gap-1.5"
+                  title="Pisahkan Lagu Menjadi Trek Vokal & Musik Instrumen"
+                >
+                  <span>🎼</span>
+                  <span>PISAHKAN VOKAL & INSTRUMEN (AI STEM SEPARATOR)</span>
+                </button>
+              )}
               <div className="flex gap-1.5 items-center">
                 <input 
                   type="file" 
