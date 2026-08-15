@@ -1441,18 +1441,36 @@ export default function App() {
     if (lrcFile) formData.append('lyricFile', lrcFile);
     if (bgAudioFile) formData.append('bgAudioFile', bgAudioFile);
 
-    // Prioritize local Python HTTP Server on port 1426 (avoids Tauri Rust IPC payload serialization size limits)
+    setExportLogHistory([
+      `[SYSTEM] Memulai persiapan file aset & konfigurasi render...`,
+      `[SYSTEM] Audio Utama: ${audioFile ? audioFile.name : 'Sample Audio'}`,
+      `[SYSTEM] Target Output: ${exportConfig.outputPath}`,
+      `[SYSTEM] Menghubungkan ke Server Python Backend (Port 1426)...`
+    ]);
+
     try {
       setExportStatus('Menghubungkan ke Python Render Backend (http://localhost:1426)...');
 
-      const res = await fetch('http://localhost:1426/export', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP Server Error: ${res.statusText}`);
+      let res: Response | null = null;
+      try {
+        res = await fetch('http://localhost:1426/export', {
+          method: 'POST',
+          body: formData
+        });
+      } catch (e) {
+        console.warn("Localhost fetch failed, trying 127.0.0.1 fallback...", e);
+        setExportLogHistory(prev => [...prev, '[SYSTEM WARN] Mengalihkan ke IPv4 127.0.0.1:1426...']);
+        res = await fetch('http://127.0.0.1:1426/export', {
+          method: 'POST',
+          body: formData
+        });
       }
+
+      if (!res || !res.ok) {
+        throw new Error(`HTTP Server Error: ${res ? res.statusText : 'Server Unreachable'}`);
+      }
+
+      setExportLogHistory(prev => [...prev, '[SYSTEM OK] Berhasil terhubung ke Backend Python! Memulai FFmpeg rendering loop...']);
 
       // Initialize render statistics states
       const startTimestamp = Date.now();

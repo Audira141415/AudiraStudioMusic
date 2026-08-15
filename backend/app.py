@@ -1012,11 +1012,17 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
 def run_server(port=1426):
     # Pre-initialize system specs asynchronously in a background thread so HTTP server binds IMMEDIATELY
     threading.Thread(target=init_system_specs, daemon=True).start()
-    server_address = ('', port)
-    httpd = HTTPServer(server_address, RenderHTTPRequestHandler)
+    try:
+        server_address = ('0.0.0.0', port)
+        httpd = HTTPServer(server_address, RenderHTTPRequestHandler)
+    except Exception as e:
+        server_address = ('127.0.0.1', port)
+        httpd = HTTPServer(server_address, RenderHTTPRequestHandler)
+
     print(f"==================================================")
     print(f" [AudioMix Backend Server] Running on port {port}")
     print(f"==================================================")
+    sys.stdout.flush()
     httpd.serve_forever()
 
 def main():
