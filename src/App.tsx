@@ -732,6 +732,8 @@ export default function App() {
   }, [isPlaying, settings.audioMixer, settings.autoDucking, settings.duckingLevel]);
 
   // Web Audio Context initialization
+  const bassFilterRef = useRef<BiquadFilterNode | null>(null);
+
   const initAudioAnalyser = () => {
     if (!audioElementRef.current) return null;
     
@@ -743,7 +745,14 @@ export default function App() {
         analyser.fftSize = 256;
 
         const source = ctx.createMediaElementSource(audioElementRef.current);
-        source.connect(analyser);
+        const bassFilter = ctx.createBiquadFilter();
+        bassFilter.type = 'lowshelf';
+        bassFilter.frequency.value = 80;
+        bassFilter.gain.value = settings.bassBoost ? 8 : 0;
+        bassFilterRef.current = bassFilter;
+
+        source.connect(bassFilter);
+        bassFilter.connect(analyser);
         analyser.connect(ctx.destination);
 
         audioContextRef.current = ctx;
@@ -754,6 +763,10 @@ export default function App() {
       }
     } else if (audioContextRef.current.state === 'suspended') {
       audioContextRef.current.resume();
+    }
+
+    if (bassFilterRef.current) {
+      bassFilterRef.current.gain.value = settings.bassBoost ? 8 : 0;
     }
     
     return analyserRef.current;
