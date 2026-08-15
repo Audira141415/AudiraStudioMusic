@@ -15,14 +15,8 @@ struct ProgressPayload {
 // Tauri command to start the Python exporter process
 #[tauri::command]
 fn export_video(app: AppHandle, config: String) -> Result<(), String> {
-    // 1. Get workspace base path and construct backend dir
-    let current_dir = std::env::current_dir().map_err(|e| e.to_string())?;
-    let workspace_root = if current_dir.ends_with("src-tauri") {
-        current_dir.parent().unwrap_or(&current_dir).to_path_buf()
-    } else {
-        current_dir
-    };
-    let backend_dir = workspace_root.join("backend");
+    // 1. Get user temp directory for AudiraStudioMusic
+    let backend_dir = std::env::temp_dir().join("AudiraStudioMusic");
     
     // Create backend directory if it does not exist
     std::fs::create_dir_all(&backend_dir).map_err(|e| e.to_string())?;

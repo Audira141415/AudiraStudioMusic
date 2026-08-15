@@ -12,6 +12,12 @@ current_progress = 0
 current_status = "Idle"
 is_rendering = False
 
+def get_work_dir():
+    import tempfile
+    work_dir = os.path.join(tempfile.gettempdir(), "AudiraStudioMusic")
+    os.makedirs(work_dir, exist_ok=True)
+    return work_dir
+
 # ─────────────────────────────────────────────────────────────────────
 # Parallel Render Queue — Thread-safe State
 # ─────────────────────────────────────────────────────────────────────
@@ -761,6 +767,8 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
                     msg_bytes = f"Content-Type: {content_type}\r\n\r\n".encode('ascii') + body
                     msg = BytesParser(policy=default).parsebytes(msg_bytes)
                     
+                    work_dir = get_work_dir()
+                    
                     for part in msg.iter_parts():
                         name = part.get_param('name', header='content-disposition')
                         filename = part.get_filename()
@@ -772,29 +780,29 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
                         if name == 'settings':
                             settings_json = json.loads(payload.decode('utf-8'))
                         elif name == 'audioFile':
-                            audio_path = os.path.join(backend_dir, f"{job_id}_audio.mp3")
+                            audio_path = os.path.join(work_dir, f"{job_id}_audio.mp3")
                             with open(audio_path, "wb") as f:
                                 f.write(payload)
                         elif name == 'backgroundFile':
                             ext = ".png" if filename and filename.lower().endswith(".png") else ".jpg"
-                            bg_path = os.path.join(backend_dir, f"{job_id}_bg{ext}")
+                            bg_path = os.path.join(work_dir, f"{job_id}_bg{ext}")
                             with open(bg_path, "wb") as f:
                                 f.write(payload)
                         elif name == 'logoFile':
-                            logo_path = os.path.join(backend_dir, f"{job_id}_logo.png")
+                            logo_path = os.path.join(work_dir, f"{job_id}_logo.png")
                             with open(logo_path, "wb") as f:
                                 f.write(payload)
                         elif name == 'voiceoverFile':
-                            voiceover_path = os.path.join(backend_dir, f"{job_id}_voiceover.mp3")
+                            voiceover_path = os.path.join(work_dir, f"{job_id}_voiceover.mp3")
                             with open(voiceover_path, "wb") as f:
                                 f.write(payload)
                         elif name == 'fontFile':
                             ext = ".otf" if filename and filename.lower().endswith(".otf") else ".ttf"
-                            font_path = os.path.join(backend_dir, f"{job_id}_font{ext}")
+                            font_path = os.path.join(work_dir, f"{job_id}_font{ext}")
                             with open(font_path, "wb") as f:
                                 f.write(payload)
                         elif name == 'lyricFile':
-                            lyric_path = os.path.join(backend_dir, f"{job_id}_lyrics.lrc")
+                            lyric_path = os.path.join(work_dir, f"{job_id}_lyrics.lrc")
                             with open(lyric_path, "wb") as f:
                                 f.write(payload)
                     
