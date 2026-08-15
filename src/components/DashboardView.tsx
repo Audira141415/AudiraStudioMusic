@@ -50,19 +50,38 @@ export function DashboardView({
   const [diagnostics, setDiagnostics] = React.useState<any>(null);
   const [loadingDiag, setLoadingDiag] = React.useState<boolean>(true);
 
-  const fetchDiagnostics = () => {
+  const fetchDiagnostics = async () => {
     setLoadingDiag(true);
-    fetch('http://localhost:1426/diagnostics')
-      .then(res => res.json())
-      .then(data => {
-        setDiagnostics(data);
-        setLoadingDiag(false);
-      })
-      .catch(err => {
-        console.error("Failed to fetch diagnostics:", err);
-        setDiagnostics(null);
-        setLoadingDiag(false);
-      });
+    let attempts = 0;
+    let success = false;
+
+    while (attempts < 6 && !success) {
+      try {
+        attempts++;
+        const res = await fetch('http://localhost:1426/diagnostics');
+        if (res.ok) {
+          const data = await res.json();
+          setDiagnostics(data);
+          success = true;
+          break;
+        }
+      } catch (err) {
+        console.warn(`Attempt ${attempts} failed to connect to Python backend:`, err);
+        if (attempts === 1 && (window as any).__TAURI_INTERNALS__) {
+          try {
+            const { invoke } = await import('@tauri-apps/api/core');
+            await invoke('start_python_backend');
+          } catch (e) {}
+        }
+      }
+      if (!success && attempts < 6) {
+        await new Promise(r => setTimeout(r, 800));
+      }
+    }
+    if (!success) {
+      setDiagnostics(null);
+    }
+    setLoadingDiag(false);
   };
 
   React.useEffect(() => {
@@ -272,37 +291,19 @@ export function DashboardView({
             Memeriksa integritas sistem dan status komponen...
           </div>
         ) : !diagnostics ? (
-          <div className="border-[2.5px] border-red-500 bg-red-50 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-red-700 font-bold text-xs neo-shadow shadow-[2px_2px_0px_#000]">
+          <div className="border-[2.5px] border-yellow-500 bg-yellow-50 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-yellow-900 font-bold text-xs neo-shadow shadow-[2px_2px_0px_#000]">
             <div className="flex items-center gap-3">
-              <AlertOctagon className="w-5 h-5 flex-shrink-0 text-red-600" />
+              <RefreshCw className="w-5 h-5 flex-shrink-0 text-yellow-600 animate-spin" />
               <div>
-                Python Backend (http://localhost:1426) belum terhubung.
+                Sedang menghubungkan ke Python Render Engine (Port 1426)...
               </div>
             </div>
             <button 
-              onClick={async () => {
-                setLoadingDiag(true);
-                try {
-                  if ((window as any).__TAURI_INTERNALS__) {
-                    const { invoke } = await import('@tauri-apps/api/core');
-                    await invoke('start_python_backend');
-                  }
-                } catch (e) {
-                  console.warn("Tauri invoke start_python_backend error:", e);
-                }
-                // Retry fetching diagnostics up to 5 times
-                let attempts = 0;
-                while (attempts < 5) {
-                  await new Promise(r => setTimeout(r, 600));
-                  attempts++;
-                  await fetchDiagnostics();
-                }
-                setLoadingDiag(false);
-              }}
+              onClick={fetchDiagnostics}
               className="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xs rounded-lg border-2 border-black shadow-[2px_2px_0px_#000] active:translate-y-0.5 transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
             >
               <Zap className="w-4 h-4 text-black fill-black" />
-              <span>HUBUNGKAN / START PYTHON BACKEND OTOMATIS</span>
+              <span>HUBUNGKAN ULANG</span>
             </button>
           </div>
         ) : (

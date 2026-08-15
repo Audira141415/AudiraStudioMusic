@@ -1,4 +1,6 @@
 use tauri::{AppHandle, Emitter, Manager};
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_shell::process::{CommandEvent, CommandChild};
 use std::fs::File;
@@ -152,6 +154,12 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![export_video, start_python_backend])
         .setup(|app| {
             println!("Auto-starting Python HTTP server sidecar from Tauri...");
+            // Pre-cleanup any orphaned backend processes from previous runs
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/IM", "app-x86_64-pc-windows-msvc.exe", "/T"])
+                .creation_flags(0x08000000)
+                .output();
+
             let mut started = false;
 
             // 1. Try spawning via Tauri Shell Sidecar API
@@ -164,7 +172,7 @@ pub fn run() {
                         println!("Python server started successfully via Tauri Shell API on port 1426.");
                         started = true;
                         
-                        let app_clone = app.handle().clone();
+                        let app_clone = app.app_handle().clone();
                         tauri::async_runtime::spawn(async move {
                             while let Some(event) = rx.recv().await {
                                 match event {
@@ -222,14 +230,22 @@ pub fn run() {
         .expect("error while building tauri application");
 
     app.run(|app_handle: &tauri::AppHandle, event| {
-        if let tauri::RunEvent::Exit = event {
-            // Clean up: terminate Python HTTP server when Tauri closes
-            let state = app_handle.state::<PythonServerState>();
-            let mut lock = state.0.lock().unwrap();
-            if let Some(child) = lock.take() {
-                println!("Stopping Python HTTP server...");
-                let _ = child.kill();
-            }
+        match event {
+            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+                // Clean up: terminate Python HTTP server when Tauri window is closed
+                println!("Closing application: Terminating all Python backend subprocesses...");
+                let state = app_handle.state::<PythonServerState>();
+                let mut lock = state.0.lock().unwrap();
+                if let Some(child) = lock.take() {
+                    let _ = child.kill();
+                }
+                // Forceful taskkill fallback to ensure zero leftover processes on Windows
+                let _ = std::process::Command::new("taskkill")
+                    .args(["/F", "/IM", "app-x86_64-pc-windows-msvc.exe", "/T"])
+                    .creation_flags(0x08000000)
+                    .output();
+            },
+            _ => {}
         }
     });
 }
