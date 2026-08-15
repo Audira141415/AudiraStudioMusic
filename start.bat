@@ -26,6 +26,7 @@ echo.
 echo [2/3] Checking environment and launching services...
 echo [Frontend] Port: 1425
 echo [Backend Server] Port: 1426
+start /B python backend/app.py --server
 echo.
 echo [3/3] Starting Tauri Dev App...
 echo.
