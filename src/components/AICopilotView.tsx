@@ -3,10 +3,16 @@ import {
   Sparkles, 
   Copy, 
   Check, 
-  MessageSquare, 
   RefreshCw, 
   Key, 
-  Zap
+  Send,
+  Pin,
+  FileText,
+  Hash,
+  FileCode,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2
 } from 'lucide-react';
 
 interface AICopilotProps {
@@ -17,6 +23,11 @@ interface AICopilotProps {
   audiraRouterUrl?: string;
   audiraRouterKey?: string;
   audiraRouterModel?: string;
+  onApplyTitle?: (title: string) => void;
+  onApplyDescription?: (desc: string) => void;
+  onApplyTags?: (tags: string) => void;
+  onApplyLyrics?: (lyrics: string) => void;
+  onNavigateToStudio?: () => void;
 }
 
 export const AICopilotView: React.FC<AICopilotProps> = ({
@@ -26,7 +37,12 @@ export const AICopilotView: React.FC<AICopilotProps> = ({
   useAudiraRouter = false,
   audiraRouterUrl = 'http://localhost:20128/v1',
   audiraRouterKey = '',
-  audiraRouterModel = 'kr/gemini-1.5-flash'
+  audiraRouterModel = 'kr/gemini-1.5-flash',
+  onApplyTitle,
+  onApplyDescription,
+  onApplyTags,
+  onApplyLyrics,
+  onNavigateToStudio
 }) => {
   const [geminiKey, setGeminiKey] = useState(apiKey || localStorage.getItem('gemini_api_key') || '');
   const [promptInput, setPromptInput] = useState(`Buatkan 5 judul YouTube viral dan deskripsi menarik untuk lagu "${songTitle}" karya "${artistName}".`);
@@ -34,27 +50,61 @@ export const AICopilotView: React.FC<AICopilotProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('titles');
+  const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
+  const [routerStatus, setRouterStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+
+  React.useEffect(() => {
+    let isMounted = true;
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(`${audiraRouterUrl}/models`, {
+          headers: audiraRouterKey ? { 'Authorization': `Bearer ${audiraRouterKey}` } : {}
+        });
+        if (isMounted) {
+          if (res.ok || res.status === 401 || res.status === 200) {
+            setRouterStatus('connected');
+          } else {
+            setRouterStatus('error');
+          }
+        }
+      } catch {
+        if (isMounted) setRouterStatus('error');
+      }
+    };
+    checkHealth();
+    return () => { isMounted = false; };
+  }, [audiraRouterUrl, audiraRouterKey]);
 
   // Prompt Templates
   const templates = [
     {
       id: 'titles',
-      title: '🎵 Generator Judul YouTube Viral',
+      title: '🎵 Judul YouTube Viral',
+      icon: '🔥',
       prompt: `Buatkan 5 rekomendasi Judul Video YouTube yang sangat menarik, berpotensi viral, dan estetik untuk lagu bergenre musik visualizer dengan judul "${songTitle}" karya "${artistName}". Tambahkan emoji yang relevan.`
     },
     {
       id: 'description',
-      title: '📝 Deskripsi SEO & Kredit Lagu',
+      title: '📝 Deskripsi SEO & Timestamps',
+      icon: '📝',
       prompt: `Buatkan deskripsi lengkap video YouTube SEO-friendly untuk lagu "${songTitle}" oleh "${artistName}". Sertakan bagian: 1. Pendahuluan menarik, 2. Stempel Waktu (Timestamps), 3. Kredit Musik & Lisensi Bebas Hak Cipta, 4. Panggilan bertindak (Call to Action Subscribe & Like).`
     },
     {
       id: 'hashtags',
-      title: '#️⃣ Hashtag Viral TikTok & Reels',
+      title: '#️⃣ Hashtag Trending TikTok & Shorts',
+      icon: '#️⃣',
       prompt: `Buatkan daftar 25 hashtag paling populer dan trending di TikTok, Instagram Reels, dan YouTube Shorts untuk video visualizer musik bergenre EDM / Lofi / Cinematic dengan judul "${songTitle}" oleh "${artistName}". Grouping berdasarkan kategori.`
     },
     {
+      id: 'lyrics',
+      title: '📜 Generator Lirik & Transkrip LRC',
+      icon: '📜',
+      prompt: `Buatkan lirik format LRC bertanda waktu [mm:ss.xx] yang emosional dan puitis untuk lagu "${songTitle}" karya "${artistName}".`
+    },
+    {
       id: 'strategy',
-      title: '💡 Ide Konten & Strategi Promosi',
+      title: '💡 Ide Konten & Promosi Video',
+      icon: '💡',
       prompt: `Berikan 4 ide kreatif dan strategi promosi konten pendek (TikTok / IG Reels / Shorts) untuk mempromosikan lagu "${songTitle}" oleh "${artistName}" agar mendapatkan jangkauan penonton yang luas.`
     }
   ];
@@ -139,24 +189,13 @@ export const AICopilotView: React.FC<AICopilotProps> = ({
       // Mock Response Fallback when no API Key is configured yet
       setTimeout(() => {
         if (selectedTemplate === 'titles') {
-          setAiResponse(
-            `🔥 5 REKOMENDASI JUDUL VIRAL YOUTUBE:\n\n` +
-            `1. ${songTitle} - ${artistName} (Official Music Video Visualizer 4K)\n` +
-            `2. Dengarkan Ini Saat Kerja/Belajar! 🎧 ${songTitle} by ${artistName}\n` +
-            `3. ${songTitle} (Lofi Chill & Synthwave Remix) - ${artistName}\n` +
-            `4. Kumpulan Spektrum Musik Terbaik 2026 🌌 ${songTitle}\n` +
-            `5. [Bebas Hak Cipta] ${songTitle} - ${artistName} (No Copyright Visualizer)`
-          );
+          setAiResponse(`${songTitle} - ${artistName} (Official Music Video Visualizer 4K)`);
         } else if (selectedTemplate === 'hashtags') {
-          setAiResponse(
-            `#️⃣ BUNDLE HASHTAG TRENDING TIKTOK & SHORTS:\n\n` +
-            `#music #visualizer #audirastudio #${songTitle.toLowerCase().replace(/\s+/g, '')} ` +
-            `#${artistName.toLowerCase().replace(/\s+/g, '')} #edm #lofi #chillbeats #viral #fyp ` +
-            `#musicvideo #aesthetic #spectrum #aveeplayer #kinemaster #dj #remix2026 #topmusic #indonesia`
-          );
+          setAiResponse(`#music #visualizer #audirastudio #${songTitle.toLowerCase().replace(/\s+/g, '')} #${artistName.toLowerCase().replace(/\s+/g, '')} #edm #lofi #chillbeats #viral #fyp`);
+        } else if (selectedTemplate === 'lyrics') {
+          setAiResponse(`[00:05.10] ${songTitle} - ${artistName}\n[00:12.30] Menatap indahnya cahaya di malam hari...\n[00:20.45] Merasakan getaran nada yang memanggil jiwa...\n[00:28.90] Ini adalah karya dari ${artistName}...`);
         } else {
           setAiResponse(
-            `✨ HASIL AI GENERATOR (${songTitle} - ${artistName}):\n\n` +
             `Selamat Datang di Official Music Video "${songTitle}" karya "${artistName}".\n` +
             `Jangan lupa untuk klik tombol LIKE, COMMENT, dan SUBSCRIBE agar tidak ketinggalan visualizer musik terbaru!\n\n` +
             `⏱️ TIMESTAMPS:\n` +
@@ -168,8 +207,40 @@ export const AICopilotView: React.FC<AICopilotProps> = ({
           );
         }
         setIsLoading(false);
-      }, 800);
+      }, 700);
     }
+  };
+
+  const showToast = (msg: string) => {
+    setActionSuccessMsg(msg);
+    setTimeout(() => setActionSuccessMsg(null), 3000);
+  };
+
+  const handleApplyTitleToStudio = () => {
+    if (!aiResponse || !onApplyTitle) return;
+    // Extract first title line if multi-line
+    const lines = aiResponse.split('\n').filter(l => l.trim().length > 0);
+    const cleanTitle = lines[0].replace(/^[0-9\.\-\*\s]+/, '').trim();
+    onApplyTitle(cleanTitle || aiResponse);
+    showToast(`📌 Judul Utama "${cleanTitle || aiResponse}" Berhasil Dipasang ke Video Studio!`);
+  };
+
+  const handleApplyDescriptionToMetadata = () => {
+    if (!aiResponse || !onApplyDescription) return;
+    onApplyDescription(aiResponse);
+    showToast('📝 Deskripsi SEO Berhasil Dipasang ke Metadata Ekspor!');
+  };
+
+  const handleApplyTagsToMetadata = () => {
+    if (!aiResponse || !onApplyTags) return;
+    onApplyTags(aiResponse);
+    showToast('#️⃣ Hashtag Berhasil Dipasang ke Metadata Ekspor!');
+  };
+
+  const handleApplyLyricsToStep5 = () => {
+    if (!aiResponse || !onApplyLyrics) return;
+    onApplyLyrics(aiResponse);
+    showToast('📜 Lirik Karaoke Berhasil Dipasang ke Step 5 (LRC Studio)!');
   };
 
   const handleCopy = () => {
@@ -186,151 +257,224 @@ export const AICopilotView: React.FC<AICopilotProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#FAF6ED] overflow-y-auto select-none p-8">
+    <div className="flex-1 flex flex-col h-full bg-[#FAF6ED] overflow-y-auto select-none p-6 md:p-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-black">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-5 border-b-[3px] border-black gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-[#8B5CF6] border-2 border-black rounded-xl text-white shadow-[3px_3px_0px_#000]">
+          <div className="p-3 bg-[#8B5CF6] border-[2.5px] border-black rounded-2xl text-white shadow-[3.5px_3.5px_0px_#000]">
             <Sparkles className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-xl font-black uppercase tracking-wider text-black">
-              AI Copilot & Metadata Studio
+              AI Copilot 2.0 & Studio Metadata Integrator
             </h1>
-            <p className="text-xs text-black/60 font-extrabold uppercase tracking-wide">
-              Asisten AI Pintar Berbasis {useAudiraRouter ? audiraRouterModel : 'Gemini 1.5 Flash'} untuk Judul, Deskripsi & Hashtag Content Video
+            <p className="text-xs text-black/60 font-black uppercase tracking-wide">
+              Generasi Judul Viral, Deskripsi SEO, Hashtags, & Lirik Karaoke dengan Penerapan 1-Klik ke Studio
             </p>
           </div>
         </div>
 
-        {/* API Key Status Badge / Audira Router Indicator */}
-        <div className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 rounded-xl shadow-[3px_3px_0px_#000]">
-          {useAudiraRouter ? (
-            <>
-              <Zap className="w-4 h-4 text-green-500 animate-pulse" />
-              <span className="text-xs font-black uppercase text-green-700">
-                Router: {audiraRouterModel}
-              </span>
-            </>
-          ) : (
-            <>
-              <Key className="w-4 h-4 text-[#8B5CF6]" />
-              <input
-                type="password"
-                value={geminiKey}
-                onChange={handleSaveKey}
-                placeholder="Masukkan Gemini API Key..."
-                className="text-xs font-bold bg-transparent border-none focus:outline-none w-48 text-black"
-              />
-            </>
-          )}
+        {/* Live Song Context Card */}
+        <div className="px-4 py-2.5 bg-[#FEF3C7] border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] text-xs font-black text-amber-950 flex items-center gap-2">
+          <span>🎵 Lagu Aktif:</span>
+          <span className="font-bold bg-white px-2 py-0.5 rounded border border-black truncate max-w-[200px]">
+            {songTitle} - {artistName}
+          </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1">
-        {/* Left Panel: Templates & Custom Prompt */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          {/* Preset Templates */}
-          <div className="bg-white border-[3px] border-black rounded-2xl p-6 shadow-[5px_5px_0px_#000] space-y-4">
-            <span className="text-xs font-black uppercase tracking-wider text-black block">
-              Pilih Template Prompt AI Instan:
-            </span>
-
-            <div className="grid grid-cols-1 gap-2.5">
-              {templates.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => handleSelectTemplate(t)}
-                  className={`p-3.5 border-2 border-black rounded-xl text-left font-bold text-xs transition-all cursor-pointer flex items-center justify-between ${
-                    selectedTemplate === t.id
-                      ? 'bg-[#8B5CF6] text-white shadow-[3px_3px_0px_#000] translate-y-[-1px]'
-                      : 'bg-[#FEF8EC] text-black hover:bg-amber-100 shadow-[2px_2px_0px_#000]'
-                  }`}
-                >
-                  <span>{t.title}</span>
-                  {selectedTemplate === t.id && <Zap className="w-4 h-4 text-amber-300 fill-current" />}
-                </button>
-              ))}
-            </div>
+      {/* Action Success Toast Notification */}
+      {actionSuccessMsg && (
+        <div className="p-4 bg-emerald-400 border-[2.5px] border-black rounded-xl text-black font-black text-xs shadow-[4px_4px_0px_#000] flex items-center justify-between animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-black" />
+            <span>{actionSuccessMsg}</span>
           </div>
-
-          {/* Prompt Editor Form */}
-          <div className="bg-white border-[3px] border-black rounded-2xl p-6 shadow-[5px_5px_0px_#000] flex-1 flex flex-col gap-3">
-            <label className="text-xs font-black uppercase tracking-wider text-black block">
-              Instruksi Prompt AI:
-            </label>
-            <textarea
-              value={promptInput}
-              onChange={e => setPromptInput(e.target.value)}
-              rows={5}
-              className="w-full flex-1 p-3 bg-[#FEF8EC] border-2 border-black rounded-xl font-bold text-xs focus:outline-none shadow-[2px_2px_0px_#000] resize-none"
-              placeholder="Tuliskan perintah prompt untuk AI..."
-            />
-
+          {onNavigateToStudio && (
             <button
-              onClick={handleGenerate}
-              disabled={isLoading}
-              className={`w-full py-3.5 bg-[#8B5CF6] hover:bg-[#7c3aed] text-white border-2 border-black rounded-xl font-black text-xs uppercase tracking-wider shadow-[4px_4px_0px_#000] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000] active:translate-y-[1px] transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                isLoading ? 'opacity-75 cursor-not-allowed' : ''
-              }`}
+              onClick={onNavigateToStudio}
+              className="px-3 py-1 bg-white hover:bg-slate-50 text-black border border-black rounded font-black text-[10px] uppercase shadow-[1px_1px_0px_#000] flex items-center gap-1 cursor-pointer"
             >
-              {isLoading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Memproses dengan {useAudiraRouter ? 'Audira Router' : 'Gemini AI'}...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Generate Konten AI</span>
-                </>
-              )}
+              <span>Lihat di Studio</span>
+              <ArrowRight className="w-3 h-3" />
             </button>
-          </div>
+          )}
+        </div>
+      )}
+
+      {/* API Key Banner / Config */}
+      <div className="p-4 bg-white border-2 border-black rounded-xl shadow-[3px_3px_0px_#000] flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-xs font-bold text-black">
+          <Key className="w-4 h-4 text-purple-600 shrink-0" />
+          <span>Gemini 1.5 Flash API Key:</span>
         </div>
 
-        {/* Right Panel: Output Viewer */}
-        <div className="lg:col-span-7 bg-white border-[3px] border-black rounded-2xl p-6 shadow-[6px_6px_0px_#000] flex flex-col justify-between h-full">
-          <div>
-            <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
-              <span className="text-xs font-black uppercase tracking-wider text-black flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#8B5CF6]" />
-                Hasil Respons Gemini AI
+        <input
+          type="password"
+          value={geminiKey}
+          onChange={handleSaveKey}
+          placeholder="Masukkan Google Gemini API Key Anda..."
+          className="flex-1 neo-input text-xs font-mono p-2.5 w-full md:w-auto"
+        />
+
+        {useAudiraRouter ? (
+          <span className={`px-3 py-1 rounded border-2 border-black font-black text-[10px] uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_#000] ${
+            routerStatus === 'connected' 
+              ? 'bg-emerald-400 text-black' 
+              : routerStatus === 'error' 
+              ? 'bg-amber-300 text-black' 
+              : 'bg-purple-300 text-black'
+          }`}>
+            <span className={`w-2.5 h-2.5 rounded-full border border-black ${routerStatus === 'connected' ? 'bg-emerald-700 animate-ping' : 'bg-amber-700'}`} />
+            <span>
+              {routerStatus === 'connected' 
+                ? `🟢 Audira Router Proxy Aktif (${audiraRouterModel})` 
+                : `🟡 Audira Router Proxy (${audiraRouterUrl})`}
+            </span>
+          </span>
+        ) : (
+          <span className="text-[10px] font-black uppercase text-purple-700 bg-purple-100 px-2.5 py-1 rounded border border-black">
+            {geminiKey ? 'Gemini 1.5 Direct Active' : 'Demo Fallback Mode'}
+          </span>
+        )}
+      </div>
+
+      {/* Prompt Template Buttons */}
+      <div className="space-y-2">
+        <span className="text-xs font-black uppercase text-black block">Pilih Template Generasi AI:</span>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => handleSelectTemplate(t)}
+              className={`p-3 border-2 border-black rounded-xl font-black text-xs uppercase tracking-wide transition-all text-left flex flex-col justify-between gap-2 cursor-pointer shadow-[2px_2px_0px_#000] ${
+                selectedTemplate === t.id
+                  ? 'bg-[#8B5CF6] text-white shadow-[3px_3px_0px_#000] translate-y-[-1px]'
+                  : 'bg-white text-black hover:bg-amber-100'
+              }`}
+            >
+              <span className="text-lg">{t.icon}</span>
+              <span className="text-[11px] leading-tight">{t.title}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Generator & Result Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+        {/* Left Input Column (lg:col-span-5) */}
+        <div className="lg:col-span-5 space-y-4 flex flex-col">
+          <div className="space-y-2 flex-1 flex flex-col">
+            <label className="text-xs font-black uppercase text-black block">Instruksi Prompt AI:</label>
+            <textarea
+              value={promptInput}
+              onChange={(e) => setPromptInput(e.target.value)}
+              rows={8}
+              className="w-full neo-input text-xs font-mono p-3 flex-1 resize-none"
+              placeholder="Masukkan instruksi prompt AI di sini..."
+            />
+          </div>
+
+          <button
+            onClick={handleGenerate}
+            disabled={isLoading}
+            className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white border-[2.5px] border-black rounded-xl font-black text-sm uppercase tracking-wider shadow-[4px_4px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <RefreshCw className="w-5 h-5 animate-spin text-white" />
+                <span>Memproses AI Gemini...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5 text-white" />
+                <span>Generate dengan Gemini 1.5 AI</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Right Output Column (lg:col-span-7) */}
+        <div className="lg:col-span-7 p-5 bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_#000] flex flex-col justify-between space-y-4">
+          <div className="space-y-3 flex-1 flex flex-col">
+            <div className="flex justify-between items-center pb-2 border-b-2 border-black/10">
+              <span className="font-black text-xs uppercase text-black flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-purple-600" />
+                <span>Hasil Generasi AI & Output Studio</span>
               </span>
 
               {aiResponse && (
                 <button
+                  type="button"
                   onClick={handleCopy}
-                  className="px-3.5 py-1.5 bg-[#FEF8EC] hover:bg-amber-200 border-2 border-black rounded-lg font-bold text-[11px] uppercase tracking-wider shadow-[2px_2px_0px_#000] flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-3 py-1 bg-yellow-400 hover:bg-yellow-300 text-black border border-black rounded font-black text-xs uppercase shadow-[1.5px_1.5px_0px_#000] active:translate-y-[1px] cursor-pointer flex items-center gap-1"
                 >
-                  {isCopied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="text-emerald-600">Tersalin!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Salin Teks</span>
-                    </>
-                  )}
+                  {isCopied ? <Check className="w-3.5 h-3.5 text-green-700" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{isCopied ? 'Tersalin!' : 'Salin Teks'}</span>
                 </button>
               )}
             </div>
 
-            {aiResponse ? (
-              <div className="p-4 bg-[#FEF8EC] border-2 border-black rounded-xl font-medium text-xs text-black whitespace-pre-wrap leading-relaxed shadow-[2px_2px_0px_#000] max-h-[500px] overflow-y-auto">
-                {aiResponse}
-              </div>
-            ) : (
-              <div className="p-12 border-2 border-dashed border-black/30 rounded-xl flex flex-col items-center justify-center text-center gap-3 text-black/50">
-                <Sparkles className="w-10 h-10 stroke-[1.5]" />
-                <p className="font-bold text-xs max-w-sm">
-                  Klik tombol <span className="text-[#8B5CF6] font-black">"Generate Konten AI"</span> di sebelah kiri untuk menghasilkan judul, deskripsi, dan hashtag musik otomatis.
-                </p>
-              </div>
-            )}
+            <div className="flex-1 bg-[#FAF6ED] border-2 border-black rounded-xl p-4 font-mono text-xs text-black overflow-y-auto whitespace-pre-wrap min-h-[260px]">
+              {aiResponse || (
+                <div className="h-full flex flex-col items-center justify-center text-center text-black/40 space-y-2 py-12">
+                  <Sparkles className="w-8 h-8 text-black/20" />
+                  <p className="font-bold text-xs">Klik [Generate dengan Gemini 1.5 AI] di samping untuk menghasilkan judul viral, deskripsi SEO, hashtags, atau lirik!</p>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* ⚡ DIRECT 1-CLICK STUDIO APPLICATION BUTTONS BAR */}
+          {aiResponse && (
+            <div className="p-3 bg-[#FEF3C7] border-2 border-black rounded-xl space-y-2 shadow-[2px_2px_0px_#000] animate-fadeIn">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-950 block">
+                ⚡ Terapkan Hasil AI Langsung ke Studio & Metadata (1-Klik):
+              </span>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={handleApplyTitleToStudio}
+                  className="p-2 bg-yellow-400 hover:bg-yellow-300 text-black border border-black rounded-lg font-black text-[10px] uppercase shadow-[1.5px_1.5px_0px_#000] active:translate-y-[1px] cursor-pointer transition-all flex items-center justify-center gap-1 truncate"
+                  title="Pasang Judul Ini ke Video Kanvas Studio"
+                >
+                  <Pin className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">📌 Pasang Judul</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApplyDescriptionToMetadata}
+                  className="p-2 bg-purple-500 hover:bg-purple-600 text-white border border-black rounded-lg font-black text-[10px] uppercase shadow-[1.5px_1.5px_0px_#000] active:translate-y-[1px] cursor-pointer transition-all flex items-center justify-center gap-1 truncate"
+                  title="Pasang Deskripsi ke Output Metadata Video"
+                >
+                  <FileText className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">📝 Pasang Deskripsi</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApplyTagsToMetadata}
+                  className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white border border-black rounded-lg font-black text-[10px] uppercase shadow-[1.5px_1.5px_0px_#000] active:translate-y-[1px] cursor-pointer transition-all flex items-center justify-center gap-1 truncate"
+                  title="Pasang Hashtag ke Output Metadata Video"
+                >
+                  <Hash className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">#️⃣ Pasang Hashtag</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApplyLyricsToStep5}
+                  className="p-2 bg-blue-500 hover:bg-blue-600 text-white border border-black rounded-lg font-black text-[10px] uppercase shadow-[1.5px_1.5px_0px_#000] active:translate-y-[1px] cursor-pointer transition-all flex items-center justify-center gap-1 truncate"
+                  title="Pasang Lirik ke Step 5 (LRC Studio)"
+                >
+                  <FileCode className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">📜 Pasang Lirik</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

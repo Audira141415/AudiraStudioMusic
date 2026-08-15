@@ -15,7 +15,9 @@ import {
   CheckCircle2,
   XCircle,
   Layers,
-  LogOut
+  LogOut,
+  Plus,
+  User
 } from 'lucide-react';
 import { PreviewCanvas } from './components/PreviewCanvas';
 import { SpectrumEditor } from './components/SpectrumEditor';
@@ -27,9 +29,13 @@ import { ThumbnailStudioView } from './components/ThumbnailStudioView';
 import { AICopilotView } from './components/AICopilotView';
 import { BatchQueuePanel } from './components/BatchQueuePanel';
 import { LandingPageView } from './components/LandingPageView';
+import { UserProfileView, UserProfile, UserAccountItem } from './components/UserProfileView';
 import { QueueView } from './components/QueueView';
 import { DirectDownloadModal } from './components/DirectDownloadModal';
 import { AudioStemSeparatorModal } from './components/AudioStemSeparatorModal';
+import { PresetTemplateModal } from './components/PresetTemplateModal';
+import { AudioEqualizerModal } from './components/AudioEqualizerModal';
+import { BatchMultiSongModal } from './components/BatchMultiSongModal';
 
 // Conditional import of Tauri api to prevent browser crash
 let invokeTauri: any = null;
@@ -260,7 +266,7 @@ const DEFAULT_SETTINGS = {
   showLyrics: false,
   lyricMethod: 'Gemini AI Studio (Cloud 1.5 Flash)',
   geminiApiKey: localStorage.getItem('gemini_api_key') || '',
-  useAudiraRouter: localStorage.getItem('use_audira_router') === 'true',
+  useAudiraRouter: localStorage.getItem('use_audira_router') !== 'false',
   audiraRouterUrl: localStorage.getItem('audira_router_url') || 'http://localhost:20128/v1',
   audiraRouterKey: localStorage.getItem('audira_router_key') || '',
   audiraRouterModel: localStorage.getItem('audira_router_model') || 'kr/gemini-1.5-flash',
@@ -297,7 +303,44 @@ const DEFAULT_SETTINGS = {
   showMusicCardBadge: true,
   musicCardStyle: 'vinyl',
   lyricWordHighlight: true,
-  lyricStylePreset: 'apple_music'
+
+  // Cover 2.0 (Cover Studio Pro)
+  enableDualLayerCover: true,
+  coverBadgeStyle: 'Floating Glassmorphism',
+  autoExtractPalette: true,
+  enableKenBurns: true,
+  coverTextureFilter: 'None',
+  lyricStylePreset: 'apple_music',
+
+  // Multi-Aspect Ratio & Audio DSP
+  eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  reverbGain: 20,
+  spatialWidth: 50,
+
+  // 5 Menu Enhancements 2.0
+  enableBgSlideshow: false,
+  bgSlideshowInterval: 10,
+  coverBadgePos: 'center',
+  vfxScreenShake: true,
+  shakeIntensity: 1.0,
+  vfxBeatGlitch: false,
+  specPeakDots: true,
+  textKineticPulse: true,
+  logoPosition: 'top-right',
+  lyricDualLineBlur: true,
+
+  // Dual-Layer Background Audio Masker
+  enableBgAudio: false,
+  bgAudioUrl: '',
+  bgAudioName: '',
+  bgAudioVolume: 15,
+  bgAudioPreset: 'none',
+
+  // Dual-Layer Ultimate Upgrade
+  bgAudioSidechain: true,
+  bgAudioSecondPreset: 'none',
+  coverSpinSpeed: 1.0,
+  coverAuraGlow: true
 };
 
 export default function App() {
@@ -319,6 +362,57 @@ export default function App() {
   // State for Direct Download Modal (Audira Clip Engine)
   const [isDirectDownloadOpen, setIsDirectDownloadOpen] = useState(false);
   const [isStemModalOpen, setIsStemModalOpen] = useState(false);
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+  const [isEqModalOpen, setIsEqModalOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+
+  const handleApplyPreset = (presetSettings: any) => {
+    setSettings(prev => ({ ...prev, ...presetSettings }));
+  };
+
+  const handleApplyEQ = (eqSettings: { gains: number[]; reverbGain: number; spatialWidth: number }) => {
+    setSettings(prev => ({
+      ...prev,
+      eqGains: eqSettings.gains,
+      reverbGain: eqSettings.reverbGain,
+      spatialWidth: eqSettings.spatialWidth
+    }));
+  };
+
+  const handleQueueBatchSongs = (audioFiles: File[]) => {
+    audioFiles.forEach((file, idx) => {
+      const songTitle = file.name.replace(/\.[^/.]+$/, "");
+      const outputName = `${songTitle.replace(/[^a-zA-Z0-9_\- ]/g, '')}.mp4`;
+      const fullOutputPath = `F:/AudiraMusic/AudiraStudioMusic/${outputName}`;
+
+      const payload = {
+        audio_path: file.name,
+        bg_path: bgFile ? bgFile.name : 'background.jpg',
+        output_path: fullOutputPath,
+        settings: { ...settings, songTitle, artistName: 'Audira Batch' },
+        exportConfig
+      };
+
+      fetch('http://localhost:1426/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(err => console.warn("Batch queue post error:", err));
+
+      const newJobId = `job_${Date.now()}_${idx}`;
+      const newJobItem: HistoryItem = {
+        id: newJobId,
+        fileName: outputName,
+        resolution: exportConfig.resolution,
+        fps: exportConfig.fps,
+        date: new Date().toLocaleString(),
+        status: 'Queued',
+        progress: 0
+      };
+      setExportHistory(prev => [newJobItem, ...prev]);
+    });
+    alert(`✨ ${audioFiles.length} Lagu Berhasil Masuk Antrean Render Paralel!`);
+  };
 
   const handleOpenDirectDownload = (_type: 'audio' | 'background' = 'audio') => {
     setIsDirectDownloadOpen(true);
@@ -341,9 +435,74 @@ export default function App() {
     }
   };
   // State for Active View/Tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'editor' | 'thumbnail' | 'copilot' | 'history' | 'settings' | 'queue'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'editor' | 'thumbnail' | 'copilot' | 'history' | 'settings' | 'queue' | 'profile'>('dashboard');
   const [activeStep, setActiveStep] = useState<number | null>(1);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // User Profile & Account RBAC State
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    try {
+      const saved = localStorage.getItem('user_profile');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      id: 'usr_001',
+      name: 'Agus Dwi R (AUDIRA)',
+      username: 'audira_studio',
+      email: 'admin@audirastudio.com',
+      role: 'Super Admin',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      studioName: 'Audira Music Studio Labs',
+      bio: 'Creator & Administrator untuk AudiraStudioMusic v2.0',
+      licenseKey: 'AUDIRA-2026-VIP-FULL-ACCESS',
+      memberSince: '2026'
+    };
+  });
+
+  const [userAccountsList, setUserAccountsList] = useState<UserAccountItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('user_accounts_list');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      { id: 'usr_001', name: 'Agus Dwi R (AUDIRA)', email: 'admin@audirastudio.com', role: 'Super Admin', status: 'Active', lastActive: 'Sekarang', licenseKey: 'AUDIRA-2026-VIP-FULL-ACCESS' },
+      { id: 'usr_002', name: 'Studio Editor 1', email: 'editor1@audirastudio.com', role: 'Admin', status: 'Active', lastActive: '2 jam lalu', licenseKey: 'AUDIRA-2026-ADMIN-9981' },
+      { id: 'usr_003', name: 'Creator Member', email: 'member@audirastudio.com', role: 'User', status: 'Active', lastActive: '1 hari lalu', licenseKey: 'AUDIRA-2026-USER-4412' }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('user_profile', JSON.stringify(userProfile));
+  }, [userProfile]);
+
+  useEffect(() => {
+    localStorage.setItem('user_accounts_list', JSON.stringify(userAccountsList));
+  }, [userAccountsList]);
+
+  const handleUpdateProfile = (updated: Partial<UserProfile>) => {
+    setUserProfile(prev => ({ ...prev, ...updated }));
+  };
+
+  const handleUpdateUserRole = (userId: string, newRole: 'Super Admin' | 'Admin' | 'User') => {
+    setUserAccountsList(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    if (userId === userProfile.id) {
+      setUserProfile(prev => ({ ...prev, role: newRole }));
+    }
+  };
+
+  const handleAddLicenseKey = (key: string, role: 'Super Admin' | 'Admin' | 'User') => {
+    const newId = `usr_${Date.now().toString().slice(-4)}`;
+    const newAccount: UserAccountItem = {
+      id: newId,
+      name: `User ${key.slice(-4)}`,
+      email: `user_${key.slice(-4).toLowerCase()}@audirastudio.com`,
+      role: role,
+      status: 'Active',
+      lastActive: 'Baru Saja',
+      licenseKey: key
+    };
+    setUserAccountsList(prev => [newAccount, ...prev]);
+  };
 
   // Parallel Render Queue state
   const [isBatchQueueOpen, setIsBatchQueueOpen] = useState(false);
@@ -1433,7 +1592,21 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className="px-3 py-1 bg-[#FEF3C7] hover:bg-amber-200 border-2 border-black rounded-xl text-xs font-black text-black flex items-center gap-2 shadow-[2px_2px_0px_#000] cursor-pointer transition-all active:translate-y-[1px]"
+            title="Buka Profil Pengguna & Aktivasi Lisensi"
+          >
+            <img src={userProfile.avatar} alt="Avatar" className="w-6 h-6 rounded-lg border border-black object-cover" />
+            <span className="truncate max-w-[130px] font-bold">{userProfile.name}</span>
+            <span className={`px-2 py-0.5 text-white rounded text-[9px] font-black uppercase ${
+              userProfile.role === 'Super Admin' ? 'bg-purple-600' : userProfile.role === 'Admin' ? 'bg-blue-600' : 'bg-emerald-600'
+            }`}>
+              {userProfile.role}
+            </span>
+          </button>
+
           <div className="px-4 py-1.5 bg-white border-2 border-black rounded-lg text-xs font-bold text-black flex items-center gap-1.5 shadow-[2px_2px_0px_#000]">
             <Info className="w-4 h-4 text-black" />
             <span>WebGL GPU acceleration active</span>
@@ -1545,6 +1718,19 @@ export default function App() {
 
           <div className="w-full px-2 flex flex-col gap-3">
             <button
+              onClick={() => setActiveTab('profile')}
+              className={`p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full ${
+                activeTab === 'profile'
+                  ? 'bg-yellow-400 text-black shadow-[2px_2px_0px_#000] translate-y-[-1px]'
+                  : 'bg-white hover:bg-amber-100 text-black shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2.5px_2.5px_0px_#000]'
+              }`}
+              title="Profil Pengguna & Akun"
+            >
+              <User className="w-5 h-5 text-black" />
+              <span>Profil</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('settings')}
               className={`p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full ${
                 activeTab === 'settings'
@@ -1601,12 +1787,26 @@ export default function App() {
         {activeTab === 'copilot' && (
           <AICopilotView 
             apiKey={settings.geminiApiKey}
-            songTitle={settings.textTitle}
-            artistName={settings.textArtist}
+            songTitle={settings.textTitle || 'Futuristic Resonance'}
+            artistName={settings.textArtist || 'Audira Clip AI Studio'}
             useAudiraRouter={settings.useAudiraRouter}
             audiraRouterUrl={settings.audiraRouterUrl}
             audiraRouterKey={settings.audiraRouterKey}
             audiraRouterModel={settings.audiraRouterModel}
+            onApplyTitle={(t) => {
+              handleSettingChange('textTitle', t);
+              handleSettingChange('songTitle', t);
+            }}
+            onApplyDescription={(d) => {
+              handleSettingChange('videoDescription', d);
+            }}
+            onApplyTags={(tags) => {
+              handleSettingChange('videoTags', tags);
+            }}
+            onApplyLyrics={(l) => {
+              handleSettingChange('lyricsContent', l);
+            }}
+            onNavigateToStudio={() => setActiveTab('editor')}
           />
         )}
 
@@ -1631,6 +1831,9 @@ export default function App() {
                 }}
                 onOpenDirectDownload={handleOpenDirectDownload}
                 onOpenStemSeparator={() => setIsStemModalOpen(true)}
+                onOpenPresetModal={() => setIsPresetModalOpen(true)}
+                onOpenEqModal={() => setIsEqModalOpen(true)}
+                onOpenBatchModal={() => setIsBatchModalOpen(true)}
                 audioName={audioFile ? audioFile.name : null}
                 bgNames={bgFiles.map(f => f.name)}
                 activeStep={activeStep}
@@ -1662,14 +1865,17 @@ export default function App() {
               isSidebarCollapsed ? 'pl-16' : ''
             }`}>
               {/* Draft & Batch Queue Control Header */}
-              {isExporting && (
-                isEditingNewDraft ? (
+              {isExporting && (() => {
+                const activeCount = exportHistory.filter(h => h.status === 'Queued' || h.status === 'Exporting' || h.status.toLowerCase().includes('rendering')).length;
+                const nextDraftNum = Math.max(2, activeCount + 1);
+                
+                return isEditingNewDraft ? (
                   <div className="w-full p-3.5 bg-emerald-100 border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 text-emerald-950 font-black text-xs select-none">
                     <div className="flex items-center gap-2">
                       <span className="text-base">✨</span>
                       <div>
-                        <div className="uppercase tracking-wider font-black text-emerald-950">DRAFT PROYEK BARU AKTIF (#2 UNTUK ANTREAN)</div>
-                        <p className="text-[10px] text-emerald-800 font-bold">Silakan pilih lagu & background baru di menu kiri (Step 1 - Step 5), lalu klik [MULAI RENDER MP4] di bawah!</p>
+                        <div className="uppercase tracking-wider font-black text-emerald-950">DRAFT PROYEK BARU AKTIF (#{nextDraftNum} UNTUK ANTREAN)</div>
+                        <p className="text-[10px] text-emerald-800 font-bold">Silakan pilih lagu & background baru di menu kiri (Step 1 - Step 5), lalu klik [MASUKKAN PROYEK #{nextDraftNum} KE ANTREAN] di bawah!</p>
                       </div>
                     </div>
                     <button
@@ -1685,8 +1891,8 @@ export default function App() {
                     <div className="flex items-center gap-2">
                       <span className="text-base">⚡</span>
                       <div>
-                        <div className="uppercase tracking-wider font-black text-amber-950">1 VIDEO SEDANG DI-RENDER DI LATAR BELAKANG ({exportProgress}%)</div>
-                        <p className="text-[10px] text-amber-800 font-bold">Ingin memproses lagu lain sekaligus? Klik tombol di kanan untuk membuka 5 Step proyek baru!</p>
+                        <div className="uppercase tracking-wider font-black text-amber-950">{activeCount} PROYEK RENDERING / DALAM ANTREAN ({exportProgress}%)</div>
+                        <p className="text-[10px] text-amber-800 font-bold">Ingin memproses lagu lain sekaligus? Klik tombol di kanan untuk menyusun Proyek #{nextDraftNum}!</p>
                       </div>
                     </div>
                     <button
@@ -1694,8 +1900,8 @@ export default function App() {
                       onClick={() => {
                         setAudioFile(null);
                         setAudioUrl(null);
-                        handleSettingChange('songTitle', 'Judul Lagu Baru');
-                        handleSettingChange('artistName', 'Artis Baru');
+                        handleSettingChange('songTitle', `Judul Lagu #${nextDraftNum}`);
+                        handleSettingChange('artistName', 'Artis');
                         setBgFile(null);
                         setBgUrl(null);
                         setLogoFile(null);
@@ -1708,11 +1914,11 @@ export default function App() {
                       }}
                       className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-black border-2 border-black rounded-lg font-black text-xs uppercase tracking-wider shadow-[2px_2px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
                     >
-                      <span>➕ BUAT PROYEK/ANTREAN BARU</span>
+                      <span>➕ BUAT PROYEK #{nextDraftNum} / ANTREAN BARU</span>
                     </button>
                   </div>
-                )
-              )}
+                );
+              })()}
 
               <div className="w-full flex-1 flex flex-col items-center justify-center min-h-0 max-h-[calc(100vh-230px)]">
                 <PreviewCanvas
@@ -1854,10 +2060,21 @@ export default function App() {
 
                 <button
                   onClick={handleExport}
-                  disabled={isExporting}
-                  className="py-4 neo-btn-primary text-sm uppercase font-black tracking-wider flex items-center justify-center gap-2"
+                  disabled={isExporting && !isEditingNewDraft}
+                  className={`py-4 text-sm uppercase font-black tracking-wider flex items-center justify-center gap-2 border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer ${
+                    isEditingNewDraft 
+                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white font-black animate-pulse' 
+                      : isExporting 
+                        ? 'bg-purple-600 text-white cursor-not-allowed opacity-90' 
+                        : 'bg-[#8B5CF6] hover:bg-purple-700 text-white'
+                  }`}
                 >
-                  {isExporting ? (
+                  {isEditingNewDraft ? (
+                    <>
+                      <Plus className="w-5 h-5 text-white" />
+                      <span>🚀 MASUKKAN PROYEK BARU KE ANTREAN RENDER</span>
+                    </>
+                  ) : isExporting ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin text-white" />
                       <span>
@@ -2245,6 +2462,12 @@ export default function App() {
             logFilter={logFilter}
             setLogFilter={setLogFilter as any}
             onCancelExport={handleCancelExport}
+            onOpenDirectDownload={handleOpenDirectDownload}
+            onOpenStemSeparator={() => setIsStemModalOpen(true)}
+            onOpenPresetModal={() => setIsPresetModalOpen(true)}
+            onOpenEqModal={() => setIsEqModalOpen(true)}
+            onOpenBatchModal={() => setIsBatchModalOpen(true)}
+            onNavigateToStudio={() => setActiveTab('editor')}
           />
         )}
 
@@ -2271,6 +2494,18 @@ export default function App() {
             onNavigateToStudio={() => setActiveTab('editor')}
           />
         )}
+
+        {activeTab === 'profile' && (
+          <main className="flex-1 overflow-y-auto p-6 bg-[#FAF6ED]">
+            <UserProfileView 
+              profile={userProfile}
+              onUpdateProfile={handleUpdateProfile}
+              accountsList={userAccountsList}
+              onUpdateUserRole={handleUpdateUserRole}
+              onAddLicenseKey={handleAddLicenseKey}
+            />
+          </main>
+        )}
         {/* Direct Download Modal (yt-dlp Audira Clip Engine) */}
         <DirectDownloadModal 
           isOpen={isDirectDownloadOpen}
@@ -2285,6 +2520,25 @@ export default function App() {
           audioUrl={audioUrl}
           onSelectInstrumental={handleAudioUpload}
           onSelectVocals={(file) => setVoiceoverFile(file)}
+        />
+        {/* Preset Template Studio Modal */}
+        <PresetTemplateModal
+          isOpen={isPresetModalOpen}
+          onClose={() => setIsPresetModalOpen(false)}
+          currentSettings={settings}
+          onApplyPreset={handleApplyPreset}
+        />
+        {/* Audio Equalizer & Sound Enhancer Modal */}
+        <AudioEqualizerModal
+          isOpen={isEqModalOpen}
+          onClose={() => setIsEqModalOpen(false)}
+          onApplyEQ={handleApplyEQ}
+        />
+        {/* Batch Multi-Song Render Automation Modal */}
+        <BatchMultiSongModal
+          isOpen={isBatchModalOpen}
+          onClose={() => setIsBatchModalOpen(false)}
+          onQueueBatchSongs={handleQueueBatchSongs}
         />
       </div>
 

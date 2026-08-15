@@ -433,6 +433,18 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           ctx.scale(scaleX, scaleY);
         }
 
+        // Audio-Reactive Ken Burns Motion & Bass Zoom (Cover 2.0)
+        if (liveSettings.enableKenBurns !== false) {
+          const kbTime = t * 0.4;
+          const kbPanX = Math.sin(kbTime * 0.5) * 12;
+          const kbPanY = Math.cos(kbTime * 0.3) * 8;
+          const kbZoom = 1.03 + Math.sin(kbTime * 0.4) * 0.025 + (volumeFactor * 0.05);
+          
+          ctx.translate(640 + kbPanX, 360 + kbPanY);
+          ctx.scale(kbZoom, kbZoom);
+          ctx.translate(-640, -360);
+        }
+
         // Pulsing Effect (Audio React / Beat Sync) - applies in Step 1+
         const baseZoomVal = liveSettings.musicPulse ? (liveSettings.beatZoom ?? 5.0) : 1.0;
         const pulseMult = liveSettings.musicPulse ? (volumeFactor * (baseZoomVal / 50.0)) : (volumeFactor * 0.08);
@@ -441,6 +453,14 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           ctx.translate(640, 360);
           ctx.scale(pulseScale, pulseScale);
           ctx.translate(-640, -360);
+        }
+
+        // Beat-Reactive Screen Shake (Canvas Getar Bass)
+        if (liveSettings.vfxScreenShake !== false && volumeFactor > 0.35) {
+          const intensity = liveSettings.shakeIntensity || 1.0;
+          const shakeX = (Math.random() - 0.5) * volumeFactor * 10 * intensity;
+          const shakeY = (Math.random() - 0.5) * volumeFactor * 10 * intensity;
+          ctx.translate(shakeX, shakeY);
         }
 
         // Draw blurred backdrop if blurred background fit mode is selected
@@ -467,6 +487,153 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           // Ignore transient media draw errors
         }
 
+        // Cover 2.0: Dual-Layer Spotify Album Art Center Badge Card
+        if (liveSettings.enableDualLayerCover !== false && media) {
+          ctx.save();
+          ctx.filter = 'none'; // reset filter for crisp center badge
+          const cardSize = 320;
+          const cardX = 640 - cardSize / 2;
+          const cardY = 320 - cardSize / 2;
+          const badgeStyle = liveSettings.coverBadgeStyle || 'Floating Glassmorphism';
+
+          if (badgeStyle.includes('Vinyl')) {
+            // Vinyl Disc Peeking out
+            const vinylX = cardX + 110 + Math.sin(t * 2) * 5;
+            const vinylY = cardY;
+            ctx.save();
+            ctx.translate(vinylX + 160, vinylY + 160);
+            ctx.rotate(t * 1.5);
+            
+            // Outer Black Vinyl Grooves
+            ctx.fillStyle = '#111827';
+            ctx.beginPath();
+            ctx.arc(0, 0, 155, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.strokeStyle = '#1F2937';
+            for (let r = 50; r < 145; r += 12) {
+              ctx.beginPath();
+              ctx.arc(0, 0, r, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+
+            // Center Vinyl Label
+            ctx.fillStyle = '#EF4444';
+            ctx.beginPath();
+            ctx.arc(0, 0, 50, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          if (badgeStyle.includes('Cassette')) {
+            // Vintage Cassette Outer Shell
+            ctx.save();
+            ctx.fillStyle = '#1E1E2E';
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            ctx.shadowBlur = 30;
+            ctx.shadowOffsetY = 15;
+            ctx.beginPath();
+            ctx.roundRect(cardX - 25, cardY - 20, cardSize + 50, cardSize + 40, 16);
+            ctx.fill();
+            ctx.strokeStyle = '#F59E0B';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // Card Shadow & Container
+          ctx.save();
+          if (badgeStyle.includes('Glassmorphism')) {
+            ctx.shadowColor = 'rgba(139, 92, 246, 0.4)';
+            ctx.shadowBlur = 40;
+            ctx.shadowOffsetY = 12;
+          } else {
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            ctx.shadowBlur = 30;
+            ctx.shadowOffsetY = 10;
+          }
+
+          // Clip Rounded Square for Center Art Card
+          ctx.beginPath();
+          ctx.roundRect(cardX, cardY, cardSize, cardSize, 20);
+          ctx.fillStyle = '#000000';
+          ctx.fill();
+          ctx.clip();
+
+          // Draw Crisp Artwork Inside Card
+          try {
+            const scale = Math.max(cardSize / mWidth, cardSize / mHeight);
+            const cw = mWidth * scale;
+            const ch = mHeight * scale;
+            const cx = cardX + (cardSize - cw) / 2;
+            const cy = cardY + (cardSize - ch) / 2;
+            ctx.drawImage(media, cx, cy, cw, ch);
+          } catch (e) {}
+          ctx.restore();
+
+          // Glassmorphism Border Overlay
+          if (badgeStyle.includes('Glassmorphism')) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.roundRect(cardX, cardY, cardSize, cardSize, 20);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      // Cover 2.0: Decorative Texture Filter Overlays (VHS, Film Grain, Cyberpunk Grid)
+      const textureFilter = liveSettings.coverTextureFilter || 'None';
+      if (textureFilter === 'Retro VHS Scanlines') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        for (let y = 0; y < 720; y += 4) {
+          ctx.fillRect(0, y, 1280, 1.5);
+        }
+        // Animated Scan Noise
+        const scanY = (t * 120) % 720;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.fillRect(0, scanY, 1280, 8);
+        ctx.restore();
+      } else if (textureFilter === 'Cinematic Film Grain') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+        for (let i = 0; i < 400; i++) {
+          const gx = Math.random() * 1280;
+          const gy = Math.random() * 720;
+          ctx.fillRect(gx, gy, 1.5, 1.5);
+        }
+        ctx.restore();
+      } else if (textureFilter === 'Cyberpunk Grid') {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.25)';
+        ctx.lineWidth = 1.5;
+        const gridHorizon = 480;
+        ctx.beginPath();
+        // Perspective Floor Lines
+        for (let x = -600; x <= 1880; x += 80) {
+          ctx.moveTo(x, 720);
+          ctx.lineTo(640 + (x - 640) * 0.15, gridHorizon);
+        }
+        // Horizontal Grid Lines
+        for (let y = gridHorizon; y <= 720; y += 20) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(1280, y);
+        }
+        ctx.stroke();
         ctx.restore();
       }
 

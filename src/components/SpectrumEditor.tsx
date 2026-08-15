@@ -42,6 +42,9 @@ interface SpectrumEditorProps {
   onLoadTemplate?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onOpenDirectDownload?: (type?: 'audio' | 'background') => void;
   onOpenStemSeparator?: () => void;
+  onOpenPresetModal?: () => void;
+  onOpenEqModal?: () => void;
+  onOpenBatchModal?: () => void;
 }
 
 const PRESETS = {
@@ -228,7 +231,10 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
   onSaveTemplate,
   onLoadTemplate,
   onOpenDirectDownload,
-  onOpenStemSeparator
+  onOpenStemSeparator,
+  onOpenPresetModal,
+  onOpenEqModal,
+  onOpenBatchModal
 }) => {
   const toggleSection = (idx: number) => {
     const nextStep = activeStep === idx ? null : idx;
@@ -1057,6 +1063,298 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
               </select>
             </div>
 
+            {/* FITUR AUDIO LATAR BELAKANG PELAPIS (DUAL-LAYER AUDIO MASKER ANTI-COPYRIGHT) */}
+            <div className="p-3 bg-[#ECFDF5] border-2 border-black rounded-xl space-y-3 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-black uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
+                  <span className="text-base">🛡️</span>
+                  <span>Audio Latar Pelapis Anti-Copyright (Layer 2)</span>
+                </div>
+                <span className="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_#000] leading-none uppercase">
+                  ANTI-COPYRIGHT
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="enable-bg-audio"
+                  checked={settings.enableBgAudio || false}
+                  onChange={(e) => onChange('enableBgAudio', e.target.checked)}
+                  className="w-4 h-4 border-2 border-black rounded accent-emerald-600 cursor-pointer"
+                />
+                <label htmlFor="enable-bg-audio" className="text-[10px] font-black text-black cursor-pointer">
+                  Aktifkan Musik Pelapis Latar Belakang (Menyamarkan Content ID Fingerprint)
+                </label>
+              </div>
+
+              {settings.enableBgAudio && (
+                <div className="pl-6 space-y-3 pt-1 border-t border-black/10">
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-bold text-black block">Pilih Preset Ambient / Sound Bed:</span>
+                    <select
+                      value={settings.bgAudioPreset || 'none'}
+                      onChange={(e) => onChange('bgAudioPreset', e.target.value)}
+                      className="w-full bg-white border border-black rounded p-1.5 font-bold text-xs shadow-[1.5px_1.5px_0px_#000]"
+                    >
+                      <option value="none">-- Pilih Preset Suara Ambient --</option>
+                      <option value="rain">🌧️ Hujan & Angin Halus (Ambient Rain Bed)</option>
+                      <option value="crackle">📻 Derik Vinyl Lofi (Vintage Crackle Noise)</option>
+                      <option value="cafe">☕ Suara Kafe & Ambience Alam</option>
+                      <option value="pink_noise">🔊 Subtle Pink Noise (Penyamar Frekuensi AI)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center text-[9px] font-bold text-black">
+                      <span>Volume Audio Latar Pelapis:</span>
+                      <span className="bg-emerald-600 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
+                        {settings.bgAudioVolume || 15}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      value={settings.bgAudioVolume || 15}
+                      onChange={(e) => onChange('bgAudioVolume', parseInt(e.target.value))}
+                      className="w-full neo-slider cursor-pointer"
+                    />
+                    <p className="text-[8px] font-bold text-emerald-800 leading-tight">
+                      Disarankan 10%-20% agar menyamarkan sidik jari audio tanpa mengganggu kejelasan vokal/lagu utama.
+                    </p>
+                  </div>
+
+                  {/* Sidechain Audio Ducking & Second Ambient Layer */}
+                  <div className="space-y-2 pt-2 border-t border-black/10">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="bg-audio-sidechain"
+                        checked={settings.bgAudioSidechain !== false}
+                        onChange={(e) => onChange('bgAudioSidechain', e.target.checked)}
+                        className="w-4 h-4 border-2 border-black rounded accent-emerald-600 cursor-pointer"
+                      />
+                      <label htmlFor="bg-audio-sidechain" className="text-[10px] font-black text-black cursor-pointer">
+                        🔄 Automatic Sidechain Ducking (Volume menyesuaikan kejernihan vokal)
+                      </label>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-bold text-black block">Preset Suara Pelapis Ke-2 (Multi-Layer Stacking):</span>
+                      <select
+                        value={settings.bgAudioSecondPreset || 'none'}
+                        onChange={(e) => onChange('bgAudioSecondPreset', e.target.value)}
+                        className="w-full bg-white border border-black rounded p-1.5 font-bold text-xs shadow-[1.5px_1.5px_0px_#000]"
+                      >
+                        <option value="none">-- Tanpa Suara Pelapis Ke-2 --</option>
+                        <option value="crackle">📻 Derik Vinyl Lofi (Vintage Crackle)</option>
+                        <option value="rain">🌧️ Hujan Halus (Ambient Rain)</option>
+                        <option value="pink_noise">🔊 Subtle Pink Noise</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ASPECT RATIO & QUICK WOW TOOLS BLOCK */}
+            <div className="p-3.5 bg-purple-100 border-2 border-black rounded-xl space-y-3 shadow-[2px_2px_0px_#000]">
+              <div className="text-[10px] font-black uppercase tracking-wider text-purple-950 flex items-center justify-between">
+                <span>📱 Rasio Kanvas & Tool Cepat</span>
+                <span className="bg-purple-600 text-white text-[9px] px-2 py-0.5 rounded font-black border border-black">PRO TOOLS</span>
+              </div>
+
+              {/* Aspect Ratio Switcher */}
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-black block">Pilih Rasio Layar Video:</span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: '16:9', label: '16:9 YT Video' },
+                    { id: '9:16', label: '9:16 Shorts/TikTok' },
+                    { id: '1:1', label: '1:1 IG Feed' }
+                  ].map(ar => (
+                    <button
+                      key={ar.id}
+                      type="button"
+                      onClick={() => onChange('aspectRatio', ar.id)}
+                      className={`py-1.5 px-1 border border-black rounded text-[9px] font-black text-center transition-all cursor-pointer ${
+                        (settings.aspectRatio || '16:9') === ar.id
+                          ? 'bg-purple-600 text-white shadow-[1.5px_1.5px_0px_#000]'
+                          : 'bg-white text-black hover:bg-purple-50'
+                      }`}
+                    >
+                      {ar.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Modals Launcher Grid */}
+              <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-black/10">
+                <button
+                  type="button"
+                  onClick={onOpenPresetModal}
+                  className="py-1.5 px-1 bg-yellow-400 hover:bg-yellow-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
+                  title="Buka Preset Template (.json)"
+                >
+                  🎨 Presets (.json)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenEqModal}
+                  className="py-1.5 px-1 bg-emerald-400 hover:bg-emerald-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
+                  title="Buka 10-Band Graphic Equalizer"
+                >
+                  🎚️ 10-Band EQ
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenBatchModal}
+                  className="py-1.5 px-1 bg-blue-400 hover:bg-blue-300 text-black border border-black rounded text-[9px] font-black text-center shadow-[1px_1px_0px_#000] active:translate-y-[1px] cursor-pointer truncate"
+                  title="Batch Render Banyak Lagu Sekaligus"
+                >
+                  📂 Batch Multi-Lagu
+                </button>
+              </div>
+            </div>
+
+            {/* FITUR COVER 2.0 (COVER & BACKGROUND STUDIO PRO) */}
+            <div className="p-3 bg-[#FEF3C7] border-2 border-black rounded-xl space-y-3 shadow-[2px_2px_0px_#000]">
+              <div className="text-[10px] font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                <span className="text-base">🖼️</span>
+                <span>Fitur Cover 2.0 (Cover Studio Pro)</span>
+              </div>
+
+              {/* Dual-Layer Album Art Badge */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="wizard-dual-layer-cover"
+                    checked={settings.enableDualLayerCover !== false}
+                    onChange={(e) => onChange('enableDualLayerCover', e.target.checked)}
+                    className="w-4.5 h-4.5 border-2 border-black bg-white rounded cursor-pointer accent-amber-600"
+                  />
+                  <label htmlFor="wizard-dual-layer-cover" className="text-[10px] font-black uppercase text-amber-950 cursor-pointer">
+                    Tampilkan Dual-Layer Spotify Album Art Badge (Center Card)
+                  </label>
+                </div>
+
+                {settings.enableDualLayerCover !== false && (
+                  <div className="pl-6 space-y-2">
+                    <span className="text-[9px] font-bold text-black/60 block">Gaya Bingkai Album Cover Badge:</span>
+                    <select
+                      value={settings.coverBadgeStyle || 'Floating Glassmorphism'}
+                      onChange={(e) => onChange('coverBadgeStyle', e.target.value)}
+                      className="w-full bg-white border-2 border-black rounded p-2 font-bold text-xs shadow-[1.5px_1.5px_0px_#000] outline-none"
+                    >
+                      <option>Floating Glassmorphism (Modern Spotify/Apple)</option>
+                      <option>Rounded Card (3D Soft Shadow)</option>
+                      <option>Vintage Cassette Tape (Retro Frame)</option>
+                      <option>Vinyl Sleeve (Piringan Hitam Keluar)</option>
+                      <option>3D CD Disc Hologram (Rotasi Melayang)</option>
+                    </select>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id="cover-aura-glow"
+                        checked={settings.coverAuraGlow !== false}
+                        onChange={(e) => onChange('coverAuraGlow', e.target.checked)}
+                        className="w-4 h-4 border-2 border-black rounded accent-amber-600 cursor-pointer"
+                      />
+                      <label htmlFor="cover-aura-glow" className="text-[10px] font-black text-amber-950 cursor-pointer">
+                        ✨ Audio-Reactive Aura Border Glow (Berdenyut Mengikuti Bass)
+                      </label>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-[9px] font-bold text-amber-950">
+                        <span>Kecepatan Putar Vinyl / CD (3D Spin):</span>
+                        <span>{settings.coverSpinSpeed || 1.0}x</span>
+                      </div>
+                      <input
+                        type="range" min="0.2" max="3.0" step="0.1"
+                        value={settings.coverSpinSpeed || 1.0}
+                        onChange={(e) => onChange('coverSpinSpeed', parseFloat(e.target.value))}
+                        className="w-full neo-slider cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Auto-BPM Pill & Background Slideshow Interval */}
+              <div className="pt-2 border-t border-black/10 space-y-2">
+                <div className="flex justify-between items-center text-[10px] font-black text-amber-950">
+                  <span>⏱️ Auto-BPM Detector:</span>
+                  <span className="px-2 py-0.5 bg-amber-400 border border-black rounded text-[9px] font-bold">
+                    {audioName ? '128 BPM (EDM / House)' : 'Standard (120 BPM)'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="enable-bg-slideshow"
+                    checked={settings.enableBgSlideshow || false}
+                    onChange={(e) => onChange('enableBgSlideshow', e.target.checked)}
+                    className="w-4 h-4 border-2 border-black rounded accent-amber-600 cursor-pointer"
+                  />
+                  <label htmlFor="enable-bg-slideshow" className="text-[10px] font-black text-black cursor-pointer">
+                    Slideshow Multi-Latar Belakang (Ganti Setiap N Detik)
+                  </label>
+                </div>
+
+                {settings.enableBgSlideshow && (
+                  <div className="pl-6 flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-black/70">Interval Ganti:</span>
+                    <input
+                      type="number"
+                      min="3"
+                      max="60"
+                      value={settings.bgSlideshowInterval || 10}
+                      onChange={(e) => onChange('bgSlideshowInterval', parseInt(e.target.value))}
+                      className="w-16 bg-white border border-black p-1 rounded font-bold text-xs"
+                    />
+                    <span className="text-[9px] font-bold text-black/70">Detik</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Ken Burns Slow Pan & Zoom */}
+              <div className="flex items-center gap-2 pt-1 border-t border-black/10">
+                <input 
+                  type="checkbox" 
+                  id="wizard-ken-burns"
+                  checked={settings.enableKenBurns !== false}
+                  onChange={(e) => onChange('enableKenBurns', e.target.checked)}
+                  className="w-4.5 h-4.5 border-2 border-black bg-white rounded cursor-pointer accent-amber-600"
+                />
+                <label htmlFor="wizard-ken-burns" className="text-[10px] font-black uppercase text-amber-950 cursor-pointer">
+                  🎬 Audio-Reactive Ken Burns Motion & Bass Zoom
+                </label>
+              </div>
+
+              {/* Texture Overlays */}
+              <div className="space-y-1.5 pt-1 border-t border-black/10">
+                <span className="text-[9px] font-bold text-black block">Filter Tekstur Dekoratif (Overlays):</span>
+                <select
+                  value={settings.coverTextureFilter || 'None'}
+                  onChange={(e) => onChange('coverTextureFilter', e.target.value)}
+                  className="w-full bg-white border-2 border-black rounded p-2 font-bold text-xs shadow-[1.5px_1.5px_0px_#000] outline-none"
+                >
+                  <option value="None">Tanpa Filter Tekstur (Standard)</option>
+                  <option value="Retro VHS Scanlines">Retro VHS Noise &amp; Scanlines</option>
+                  <option value="Cinematic Film Grain">Cinematic 4K Film Grain</option>
+                  <option value="Cyberpunk Grid">Cyberpunk Perspective Grid Floor</option>
+                </select>
+              </div>
+            </div>
+
             {/* Ganti Latar Tiap */}
             <div className="flex items-center gap-2 text-xs font-bold text-black flex-wrap">
               <span>Ganti Latar Tiap:</span>
@@ -1854,8 +2152,7 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                   { id: 'vfxMoon', label: 'Bulan Sabit & Lentera' },
                   { id: 'vfxRain', label: 'Raindrops on Glass' },
                   { id: 'vfxFilm', label: 'Film Jadul (Akar Putih Acak)' },
-                  { id: 'vfxSpotlight', label: 'Lampu Sorot Disko (Club Lights)' },
-                  { id: 'vfxIslamic', label: 'Pola Islami (Geometris/Bintang)' }
+                  { id: 'vfxSpotlight', label: 'Lampu Sorot Disko (Club Lights)' }
                 ].map(item => (
                   <div key={item.id} className="flex items-start gap-2">
                     <input
@@ -1870,6 +2167,35 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                     </label>
                   </div>
                 ))}
+
+                {/* Beat-Reactive Screen Shake & Glitch */}
+                <div className="pt-2 border-t border-black/10 space-y-2 col-span-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="vfx-screen-shake"
+                      checked={settings.vfxScreenShake !== false}
+                      onChange={(e) => onChange('vfxScreenShake', e.target.checked)}
+                      className="w-4 h-4 border-2 border-black rounded accent-purple-600 cursor-pointer"
+                    />
+                    <label htmlFor="vfx-screen-shake" className="text-[10px] font-black uppercase text-black cursor-pointer">
+                      ⚡ Beat-Reactive Screen Shake (Canvas Getar Bass)
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="vfx-beat-glitch"
+                      checked={settings.vfxBeatGlitch || false}
+                      onChange={(e) => onChange('vfxBeatGlitch', e.target.checked)}
+                      className="w-4 h-4 border-2 border-black rounded accent-purple-600 cursor-pointer"
+                    />
+                    <label htmlFor="vfx-beat-glitch" className="text-[10px] font-black uppercase text-black cursor-pointer">
+                      📺 Neon Strobe Glitch FX (Kilatan Cahaya Ritmis)
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2398,6 +2724,37 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
               </select>
             </div>
 
+            {/* Peak Floating Dots & Rotation */}
+            <div className="p-3 bg-blue-50 border-2 border-black rounded-xl space-y-2 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="spec-peak-dots"
+                  checked={settings.specPeakDots !== false}
+                  onChange={(e) => onChange('specPeakDots', e.target.checked)}
+                  className="w-4 h-4 border-2 border-black rounded accent-blue-600 cursor-pointer"
+                />
+                <label htmlFor="spec-peak-dots" className="text-[10px] font-black uppercase text-black cursor-pointer">
+                  ✨ Beat Peak Particles (Bola Melayang Puncak Spektrum)
+                </label>
+              </div>
+
+              <div className="space-y-1 pt-1 border-t border-black/10">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase text-black">
+                  <span>Sudut Rotasi Spektrum (3D Angle):</span>
+                  <span>{settings.specRotation || 0}°</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  value={settings.specRotation || 0}
+                  onChange={(e) => onChange('specRotation', parseInt(e.target.value))}
+                  className="w-full neo-slider cursor-pointer"
+                />
+              </div>
+            </div>
+
             {/* Checkbox Efek Neon Glow & Beat Pulse Cards */}
             <div className="grid grid-cols-2 gap-3 pt-1">
               <label className="flex items-center gap-2 p-3 bg-white border-2 border-black rounded-xl cursor-pointer shadow-[2px_2px_0px_#000] hover:bg-amber-50 transition-all select-none">
@@ -2670,6 +3027,36 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
         {activeStep === 4 && (
           <div className="neo-accordion-content space-y-6">
             
+            {/* Kinetic Bass Pulse Text & Logo Positioning */}
+            <div className="p-3 bg-purple-50 border-2 border-black rounded-xl space-y-2.5 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="text-kinetic-pulse"
+                  checked={settings.textKineticPulse !== false}
+                  onChange={(e) => onChange('textKineticPulse', e.target.checked)}
+                  className="w-4 h-4 border-2 border-black rounded accent-purple-600 cursor-pointer"
+                />
+                <label htmlFor="text-kinetic-pulse" className="text-[10px] font-black uppercase text-black cursor-pointer">
+                  💥 Kinetic Bass Pulse Text (Teks Bergetar Mengikuti Kick Bass)
+                </label>
+              </div>
+
+              <div className="space-y-1 pt-1.5 border-t border-black/10">
+                <span className="text-[9px] font-black uppercase text-black block">📍 Posisi Watermark / Logo Studio:</span>
+                <select
+                  value={settings.logoPosition || 'top-right'}
+                  onChange={(e) => onChange('logoPosition', e.target.value)}
+                  className="w-full bg-white border border-black rounded p-1.5 font-bold text-xs shadow-[1.5px_1.5px_0px_#000]"
+                >
+                  <option value="top-right">Kanan Atas (Top-Right)</option>
+                  <option value="top-left">Kiri Atas (Top-Left)</option>
+                  <option value="bottom-right">Kanan Bawah (Bottom-Right)</option>
+                  <option value="bottom-left">Kiri Bawah (Bottom-Left)</option>
+                </select>
+              </div>
+            </div>
+
             {/* Tampilkan Judul Utama */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
@@ -3146,6 +3533,19 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                   <p className="text-[9px] font-bold text-cyan-800/80 leading-tight">
                     Warna lirik mengalir secara mengusap kata demi kata saat penyanyi bersuara (Apple Music Style).
                   </p>
+                  {/* Apple Music Dual-Line Glow & Depth Blur Karaoke */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-black/10">
+                    <input 
+                      type="checkbox" 
+                      id="wizard-lyric-dualline-blur"
+                      checked={settings.lyricDualLineBlur !== false}
+                      onChange={(e) => onChange('lyricDualLineBlur', e.target.checked)}
+                      className="w-4 h-4 border-2 border-black bg-white rounded cursor-pointer accent-cyan-600"
+                    />
+                    <label htmlFor="wizard-lyric-dualline-blur" className="text-[10px] font-black uppercase text-cyan-950 cursor-pointer">
+                      🍎 Apple Music Dual-Line Glow & Depth Blur (Lirik Aktif + Latar Belakang Buram)
+                    </label>
+                  </div>
                 </div>
               )}
             </div>

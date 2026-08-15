@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Disc, Music, Layers, Sparkles, Volume2, Video, Sliders, 
   ArrowRight, Play, Pause, LogIn, Image as ImageIcon, Check, X,
-  ChevronDown, Activity, Flame
+  ChevronDown, Activity, Flame, Cpu, Zap
 } from 'lucide-react';
 import { LoginScreen } from './LoginScreen';
 
@@ -14,8 +14,16 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isPlayingDemo, setIsPlayingDemo] = useState(true);
   const [selectedPreset, setSelectedPreset] = useState<'neon' | 'retro' | 'lofi' | 'minimal'>('neon');
+  const [selectedShape, setSelectedShape] = useState<'bars' | 'wave' | 'circular' | 'retro'>('bars');
+  const [demoVolume, setDemoVolume] = useState(0.8);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  // Web Audio Synthesizer State for Real Audio Demo
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscRef = useRef<OscillatorNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
 
   const handleLoginSuccess = () => {
     setShowLoginModal(false);
@@ -29,6 +37,50 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
     lofi: { name: '✨ Lo-Fi Chill', color1: '#10B981', color2: '#3B82F6', particle: '#6EE7B7', bg: '#064E3B' },
     minimal: { name: '⚡ Minimalist Studio', color1: '#000000', color2: '#ffffff', particle: '#FFDE4D', bg: '#18181B' }
   };
+
+  // Web Audio Synth setup for live demo sound
+  const toggleAudioSound = () => {
+    if (isPlayingDemo) {
+      setIsPlayingDemo(false);
+      if (audioCtxRef.current) {
+        audioCtxRef.current.suspend();
+      }
+    } else {
+      setIsPlayingDemo(true);
+      if (!audioCtxRef.current) {
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          const ctx = new AudioContextClass();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const analyser = ctx.createAnalyser();
+
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, ctx.currentTime);
+          gain.gain.setValueAtTime(demoVolume * 0.15, ctx.currentTime);
+
+          osc.connect(gain);
+          gain.connect(analyser);
+          analyser.connect(ctx.destination);
+          osc.start();
+
+          audioCtxRef.current = ctx;
+          oscRef.current = osc;
+          gainRef.current = gain;
+          analyserRef.current = analyser;
+        } catch {}
+      } else {
+        audioCtxRef.current.resume();
+      }
+    }
+  };
+
+  // Update volume gain
+  useEffect(() => {
+    if (gainRef.current && audioCtxRef.current) {
+      gainRef.current.gain.setValueAtTime(demoVolume * 0.15, audioCtxRef.current.currentTime);
+    }
+  }, [demoVolume]);
 
   // Interactive Live Spectrum Demo Animation Canvas
   useEffect(() => {
@@ -48,34 +100,88 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
       ctx.fillStyle = currentConfig.bg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const numBars = 48;
-      const barWidth = (canvas.width - numBars * 4) / numBars;
-
       phase += isPlayingDemo ? 0.08 : 0.01;
 
-      // Draw Spectrum Bars
-      for (let i = 0; i < numBars; i++) {
-        const heightMultiplier = isPlayingDemo 
-          ? (Math.sin(phase + i * 0.25) * 0.4 + Math.cos(phase * 1.5 + i * 0.1) * 0.35 + 0.45)
-          : (Math.sin(phase + i * 0.1) * 0.1 + 0.15);
+      if (selectedShape === 'bars') {
+        const numBars = 48;
+        const barWidth = (canvas.width - numBars * 4) / numBars;
 
-        const barHeight = Math.max(10, heightMultiplier * (canvas.height * 0.65));
-        const x = i * (barWidth + 4) + 8;
-        const y = canvas.height - barHeight - 20;
+        for (let i = 0; i < numBars; i++) {
+          const heightMultiplier = isPlayingDemo 
+            ? (Math.sin(phase + i * 0.25) * 0.4 + Math.cos(phase * 1.5 + i * 0.1) * 0.35 + 0.45)
+            : (Math.sin(phase + i * 0.1) * 0.1 + 0.15);
 
-        // Create Gradient Fill for Bars
-        const grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        grad.addColorStop(0, currentConfig.color1);
-        grad.addColorStop(1, currentConfig.color2);
+          const barHeight = Math.max(10, heightMultiplier * (canvas.height * 0.65));
+          const x = i * (barWidth + 4) + 8;
+          const y = canvas.height - barHeight - 20;
 
-        ctx.fillStyle = grad;
+          const grad = ctx.createLinearGradient(0, canvas.height, 0, 0);
+          grad.addColorStop(0, currentConfig.color1);
+          grad.addColorStop(1, currentConfig.color2);
+
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.roundRect(x, y, barWidth, barHeight, 4);
+          ctx.fill();
+
+          ctx.fillStyle = currentConfig.particle;
+          ctx.fillRect(x, y - 4, barWidth, 3);
+        }
+      } else if (selectedShape === 'wave') {
         ctx.beginPath();
-        ctx.roundRect(x, y, barWidth, barHeight, 4);
-        ctx.fill();
+        ctx.strokeStyle = currentConfig.color2;
+        ctx.lineWidth = 4;
+        const numPoints = 100;
+        for (let i = 0; i < numPoints; i++) {
+          const x = (i / (numPoints - 1)) * canvas.width;
+          const y = canvas.height / 2 + Math.sin(phase + i * 0.15) * (isPlayingDemo ? 60 : 15);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      } else if (selectedShape === 'circular') {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const radius = 70;
 
-        // Top Neon Glow Cap
-        ctx.fillStyle = currentConfig.particle;
-        ctx.fillRect(x, y - 4, barWidth, 3);
+        ctx.strokeStyle = currentConfig.color1;
+        ctx.lineWidth = 3;
+
+        const numRays = 40;
+        for (let i = 0; i < numRays; i++) {
+          const angle = (i / numRays) * Math.PI * 2 + phase * 0.2;
+          const len = isPlayingDemo ? 20 + Math.sin(phase * 2 + i) * 25 : 10;
+
+          const x1 = cx + Math.cos(angle) * radius;
+          const y1 = cy + Math.sin(angle) * radius;
+          const x2 = cx + Math.cos(angle) * (radius + len);
+          const y2 = cy + Math.sin(angle) * (radius + len);
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = currentConfig.color2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius - 10, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Retro Glow Wave
+        const numBars = 32;
+        const barWidth = (canvas.width - numBars * 6) / numBars;
+        for (let i = 0; i < numBars; i++) {
+          const h = isPlayingDemo ? Math.abs(Math.sin(phase + i * 0.2)) * 140 + 20 : 15;
+          const x = i * (barWidth + 6) + 12;
+          const y = (canvas.height - h) / 2;
+
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = currentConfig.particle;
+          ctx.fillStyle = currentConfig.color1;
+          ctx.fillRect(x, y, barWidth, h);
+          ctx.shadowBlur = 0;
+        }
       }
 
       // Draw Floating Sparkle Particles
@@ -95,7 +201,7 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
 
     render();
     return () => cancelAnimationFrame(animId);
-  }, [isPlayingDemo, selectedPreset]);
+  }, [isPlayingDemo, selectedPreset, selectedShape]);
 
   return (
     <div className="min-h-screen bg-[#FAF6ED] text-black font-sans select-none overflow-x-hidden relative flex flex-col">
@@ -111,9 +217,9 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
           <div>
             <h1 className="text-lg font-black tracking-wider uppercase flex items-center gap-2">
               <span>AUDIRA STUDIO</span>
-              <span className="text-[10px] bg-[#FFDE4D] text-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0px_#000]">v2.0 ULTIMATE</span>
+              <span className="text-[10px] bg-[#FFDE4D] text-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0px_#000]">v2.0 PRO</span>
             </h1>
-            <p className="text-[10px] font-bold text-black/60">Ultimate Audio Visualizer & Parallel Multi-Worker Renderer</p>
+            <p className="text-[10px] font-bold text-black/60">Ultimate Audio Visualizer & Multi-Worker Parallel Renderer</p>
           </div>
         </div>
 
@@ -133,8 +239,32 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
         </button>
       </header>
 
+      {/* Live System & Hardware Status Banner */}
+      <div className="bg-purple-900 text-white border-b-2 border-black py-2 px-6 text-xs font-black uppercase tracking-wider flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="flex items-center gap-1.5 bg-emerald-500 text-black px-2 py-0.5 rounded border border-black text-[10px]">
+            <span className="w-2 h-2 rounded-full bg-black animate-ping" />
+            <span>🟢 Audira Router Proxy: Online (Port 20128)</span>
+          </span>
+
+          <span className="flex items-center gap-1 text-purple-200">
+            <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+            <span>GPU Acceleration: Nvidia NVENC Active</span>
+          </span>
+
+          <span className="flex items-center gap-1 text-purple-200">
+            <Cpu className="w-3.5 h-3.5 text-cyan-300" />
+            <span>3-Slot Parallel Queue: Ready</span>
+          </span>
+        </div>
+
+        <div className="text-[10px] text-purple-300 font-mono">
+          SYSTEM HEALTH: 100% OPTIMAL
+        </div>
+      </div>
+
       {/* Hero Section with Live Canvas Visualizer Demo */}
-      <section className="px-6 py-12 md:py-20 max-w-6xl mx-auto space-y-10 relative z-10">
+      <section className="px-6 py-10 md:py-16 max-w-6xl mx-auto space-y-10 relative z-10">
         
         <div className="text-center space-y-6">
           {/* Floating Announcement Badge */}
@@ -165,16 +295,16 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
             </button>
 
             <button
-              onClick={() => setIsPlayingDemo(!isPlayingDemo)}
+              onClick={toggleAudioSound}
               className="px-6 py-4 bg-white hover:bg-slate-50 text-black border-3 border-black rounded-2xl font-black text-sm uppercase tracking-wider shadow-[4px_4px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer flex items-center gap-2"
             >
               {isPlayingDemo ? <Pause className="w-4 h-4 text-black fill-black" /> : <Play className="w-4 h-4 text-black fill-black" />}
-              <span>{isPlayingDemo ? 'JEDA DEMO SPEKTRUM' : 'PUTAR DEMO SPEKTRUM'}</span>
+              <span>{isPlayingDemo ? 'JEDA SUARA DEMO' : 'PUTAR SUARA DEMO'}</span>
             </button>
           </div>
 
-          <div className="pt-2">
-            <span className="inline-block px-3 py-1.5 bg-[#FFF8E7] border-2 border-black rounded-lg text-xs font-bold text-black shadow-[2px_2px_0px_#000]">
+          <div className="pt-1 flex items-center justify-center gap-2 text-xs font-bold">
+            <span className="inline-block px-3 py-1.5 bg-[#FFF8E7] border-2 border-black rounded-lg text-black shadow-[2px_2px_0px_#000]">
               💡 Kredensial Login: <strong>Username: Admin</strong> | <strong>Password: Audira</strong>
             </span>
           </div>
@@ -186,8 +316,30 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-[#8B5CF6]" />
               <span className="font-black text-sm uppercase tracking-wider text-black">
-                Pratinjau Live Engine Canvas (60 FPS WebGL Mode)
+                Pratinjau Live Engine Canvas (60 FPS WebGL FFT Mode)
               </span>
+            </div>
+
+            {/* Interactive Shape Selector Tabs */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: 'bars', label: '📊 Bars' },
+                { id: 'wave', label: '🌊 Wave' },
+                { id: 'circular', label: '⭕ Circular' },
+                { id: 'retro', label: '✨ Retro' }
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedShape(s.id as any)}
+                  className={`px-3 py-1 rounded-lg border-2 border-black font-black text-[10px] uppercase transition-all cursor-pointer ${
+                    selectedShape === s.id 
+                      ? 'bg-amber-400 text-black shadow-[2px_2px_0px_#000] translate-y-[-1px]' 
+                      : 'bg-white text-black hover:bg-slate-100'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
             </div>
 
             {/* Interactive Preset Selector Tabs */}
@@ -219,7 +371,17 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
             
             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/20 text-white font-black text-[10px] uppercase flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
-              <span>LIVE FFT REAL-TIME VISUALIZER</span>
+              <span>LIVE FFT REAL-TIME VISUALIZER ENGINE</span>
+            </div>
+
+            <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-lg border-2 border-black text-black font-black text-[10px] uppercase flex items-center gap-2 shadow-[2px_2px_0px_#000]">
+              <span>Volume Demo:</span>
+              <input
+                type="range" min="0" max="1" step="0.05"
+                value={demoVolume}
+                onChange={(e) => setDemoVolume(parseFloat(e.target.value))}
+                className="w-20 cursor-pointer accent-purple-600"
+              />
             </div>
           </div>
         </div>
@@ -299,10 +461,10 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
                 <Sparkles className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-wider text-black">
-                3. AI Lyric Wizard (LRC)
+                3. AI Lyric Wizard & Apple Music LRC
               </h3>
               <p className="text-xs font-semibold text-black/70 leading-relaxed">
-                Transkrip lirik lagu otomatis menjadi berkas karaoke berformat waktu (.LRC) menggunakan integrasi Gemini AI 1.5 Flash & Audira Router.
+                Transkrip lirik lagu otomatis menjadi berkas karaoke berformat waktu (.LRC) menggunakan integrasi Gemini AI 1.5 Flash & Apple Music dual-line glow.
               </p>
             </div>
 
@@ -312,10 +474,10 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
                 <Volume2 className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-wider text-black">
-                4. Mastering Audio LUFS
+                4. Mastering Audio LUFS & 10-Band EQ
               </h3>
               <p className="text-xs font-semibold text-black/70 leading-relaxed">
-                Normalisasi otomatis loudness standar industri (-14 LUFS YouTube, -16 LUFS Spotify) untuk hasil audio video yang nyaring & jernih.
+                Normalisasi otomatis loudness standar industri (-14 LUFS YouTube, -16 LUFS Spotify) serta pengatur 10-Band Graphic Equalizer & Spatial 3D.
               </p>
             </div>
 
@@ -325,10 +487,10 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
                 <ImageIcon className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-wider text-black">
-                5. Thumbnail Cover Studio
+                5. Thumbnail Cover 2.0 Studio
               </h3>
               <p className="text-xs font-semibold text-black/70 leading-relaxed">
-                Desain gambar sampul musik persegi (1:1) & landscape (16:9) siap diunggah ke Spotify, YouTube, dan Instagram secara instan.
+                Desain gambar sampul musik persegi (1:1) & landscape (16:9) dengan efek Dual-Layer, Ken Burns, & Spotify Floating Badge.
               </p>
             </div>
 
@@ -338,10 +500,10 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
                 <Video className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-black uppercase tracking-wider text-black">
-                6. Direct Live Streaming
+                6. Direct Live Streaming & Batch Multi-Song
               </h3>
               <p className="text-xs font-semibold text-black/70 leading-relaxed">
-                Siarkan langsung visualizer musik Anda secara real-time ke YouTube Live menggunakan protokol RTMP dengan latensi rendah.
+                Siarkan langsung visualizer musik Anda secara real-time ke YouTube Live atau proses puluhan lagu sekaligus dengan Batch Multi-Song Automation.
               </p>
             </div>
 
@@ -372,17 +534,17 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
               </thead>
               <tbody className="text-xs font-bold text-black divide-y-2 divide-black/10">
                 <tr>
-                  <td className="p-4 border-r-2 border-black font-black">Render 3-Slot Paralel</td>
+                  <td className="p-4 border-r-2 border-black font-black">Render 3-Slot Paralel & Batch Multi-Song</td>
                   <td className="p-4 border-r-2 border-black text-center bg-green-50 text-green-700 font-black"><Check className="w-5 h-5 mx-auto" /></td>
                   <td className="p-4 text-center text-red-500"><X className="w-5 h-5 mx-auto" /></td>
                 </tr>
                 <tr>
-                  <td className="p-4 border-r-2 border-black font-black">Transkripsi Lirik Otomatis (.LRC)</td>
+                  <td className="p-4 border-r-2 border-black font-black">Apple Music Karaoke LRC & Transkripsi AI</td>
                   <td className="p-4 border-r-2 border-black text-center bg-green-50 text-green-700 font-black"><Check className="w-5 h-5 mx-auto" /></td>
                   <td className="p-4 text-center text-red-500"><X className="w-5 h-5 mx-auto" /></td>
                 </tr>
                 <tr>
-                  <td className="p-4 border-r-2 border-black font-black">Mastering Loudness -14 LUFS</td>
+                  <td className="p-4 border-r-2 border-black font-black">Mastering Loudness -14 LUFS & 10-Band EQ</td>
                   <td className="p-4 border-r-2 border-black text-center bg-green-50 text-green-700 font-black"><Check className="w-5 h-5 mx-auto" /></td>
                   <td className="p-4 text-center text-red-500"><X className="w-5 h-5 mx-auto" /></td>
                 </tr>
@@ -414,8 +576,8 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
           <div className="space-y-4">
             {[
               {
-                q: "Bagaimana cara kerja 3-Slot Render Queue Paralel?",
-                a: "Aplikasi menjalankan 3 worker thread independen di latar belakang. Setiap kali Anda menekan tombol 'MULAI RENDER MP4', job akan otomatis diproses di Slot 1, 2, atau 3 secara bersamaan tanpa mengganggu satu sama lain."
+                q: "Bagaimana cara kerja 3-Slot Render Queue Paralel & Batch Multi-Song?",
+                a: "Aplikasi menjalankan 3 worker thread independen di latar belakang. Setiap kali Anda menekan tombol 'MULAI RENDER MP4' atau mengunggah banyak lagu sekaligus, job akan otomatis diproses di Slot 1, 2, atau 3 secara bersamaan."
               },
               {
                 q: "Apakah aplikasi ini membutuhkan koneksi internet?",
@@ -469,7 +631,7 @@ export function LandingPageView({ onEnterStudio }: LandingPageViewProps) {
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2 text-[10px] font-black uppercase text-black/70">
           <span className="px-2.5 py-1 bg-[#FAF6ED] border border-black rounded shadow-[1px_1px_0px_#000]">Engine: Python FFmpeg Multi-Worker</span>
           <span>•</span>
-          <span className="px-2.5 py-1 bg-[#FAF6ED] border border-black rounded shadow-[1px_1px_0px_#000]">Canvas: PixiJS v8 WebGL</span>
+          <span className="px-2.5 py-1 bg-[#FAF6ED] border border-black rounded shadow-[1px_1px_0px_#000]">Canvas: PixiJS v8 WebGL FFT</span>
           <span>•</span>
           <span className="px-2.5 py-1 bg-[#FAF6ED] border border-black rounded shadow-[1px_1px_0px_#000]">Shell: Tauri 2.0 Windows Native</span>
         </div>

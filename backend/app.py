@@ -840,6 +840,10 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
                             font_path = os.path.join(work_dir, f"{job_id}_font{ext}")
                             with open(font_path, "wb") as f:
                                 f.write(payload)
+                        elif name == 'bgAudioFile':
+                            bg_audio_path = os.path.join(work_dir, f"{job_id}_bgaudio.mp3")
+                            with open(bg_audio_path, "wb") as f:
+                                f.write(payload)
                         elif name == 'lyricFile':
                             lyric_path = os.path.join(work_dir, f"{job_id}_lyrics.lrc")
                             with open(lyric_path, "wb") as f:
