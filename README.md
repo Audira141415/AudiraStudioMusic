@@ -57,16 +57,56 @@ Saat aplikasi pertama kali dijalankan, layar **Form Login Studio** akan meminta 
 
 ---
 
-## 🛠️ Teknologi & Arsitektur (Tech Stack)
+## 🛠️ Teknologi & Arsitektur Sistem (High-Tech Stack)
 
-Audira Studio dibangun menggunakan kombinasi teknologi berkinerja tinggi:
+Audira Studio dibangun dengan arsitektur multi-tier (*enterprise multi-layered architecture*) yang memisahkan antara thread rendering antarmuka pengguna, pengolahan sinyal audio, dan engine encoding video GPU:
 
-- **Frontend Core**: React 19, TypeScript, TailwindCSS (Neo-Brutalist Theme System)
-- **Canvas Rendering**: PixiJS v8 Architecture (Hardware Accelerated 60 FPS Canvas)
-- **Desktop Shell Runtime**: Tauri v2.0 (Windows Native Executable Shell)
-- **Offline Backend Renderer**: Python 3.10 Multithreaded Server (`http://localhost:1426`)
-- **Video Processing Engine**: FFmpeg CLI Pipeline (NVIDIA NVENC / AMD AMF / Intel QSV / CPU)
-- **Icon System**: Lucide React Icon Pack
+```mermaid
+graph TD
+    subgraph UI["🖥️ FRONTEND & UI (React 19 + TypeScript)"]
+        A["Neo-Brutalist UI"]
+        B["PixiJS v8 60FPS WebGL Canvas"]
+        C["Web Audio API FFT Analyser"]
+    end
+
+    subgraph SHELL["🦀 NATIVE DESKTOP SHELL (Tauri v2.0)"]
+        D["Tauri Rust IPC"]
+        E["Native OS File Dialog API"]
+    end
+
+    subgraph BACKEND["🐍 PARALLEL RENDERER (Python 3.10)"]
+        F["API Gateway Server (:1426)"]
+        G["Thread-Safe Queue Manager"]
+        H["Multi-Worker Render Slots (1-3)"]
+    end
+
+    subgraph GPU["⚡ GPU HARDWARE ENCODING CASCADE"]
+        I["NVIDIA NVENC"]
+        J["AMD AMF"]
+        K["Intel QSV"]
+        L["CPU libx264 Fallback"]
+    end
+
+    A --> B
+    A --> C
+    A <--> D
+    D --> E
+    A -->|HTTP POST /export| F
+    F --> G --> H
+    H --> I & J & K & L
+```
+
+### ⚡ Lapisan Teknologi & Komponen Utama:
+| Lapisan System | Teknologi Utama | Deskripsi & Fungsi |
+|---|---|---|
+| **Presentation & UI** | React 19, TypeScript 5.8, TailwindCSS | Antarmuka taktil Neo-Brutalisme tanpa *main-thread blocking*. |
+| **Graphics & Audio Canvas** | PixiJS v8 WebGL 2.0, Web Audio API | Ekstraksi frekuensi spektrum real-time & partikel 60 FPS. |
+| **Desktop Native Shell** | Tauri v2.0 (Rust Core Runtime) | Pembungkus aplikasi desktop Windows native yang ultra-ringan. |
+| **Offline Render Server** | Python 3.10 Multithreaded Server | Server pengelola antrean paralel 3-slot pada port `:1426`. |
+| **Hardware Video Encoder** | FFmpeg (NVENC / AMF / QSV / CPU) | Multi-pass hardware GPU encoding cascade pipeline. |
+| **Cloud & Proxy AI** | Gemini 1.5 Flash & Audira Router | Transkripsi lirik otomatis dengan fitur *RTK Token Saver*. |
+
+> 📖 *Untuk rincian dokumen arsitektur lengkap, silakan baca [ARCHITECTURE.md](ARCHITECTURE.md).*
 
 ---
 
