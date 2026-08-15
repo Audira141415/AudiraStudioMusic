@@ -2238,22 +2238,22 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                 </select>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-wider text-black block">
+              <div className="space-y-1.5 min-w-0">
+                <label className="text-[10px] font-black uppercase tracking-wider text-black block truncate">
                   Warna Utama:
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-white border-2 border-black rounded-lg p-1.5 shadow-[2px_2px_0px_#000] min-w-0">
                   <input
                     type="color"
                     value={settings.barColor.startsWith('#') ? settings.barColor : '#8B5CF6'}
                     onChange={(e) => onChange('barColor', e.target.value)}
-                    className="w-10 h-9 border-2 border-black rounded-lg cursor-pointer bg-white p-0.5 shadow-[1.5px_1.5px_0px_#000] shrink-0"
+                    className="w-7 h-7 border border-black rounded cursor-pointer bg-transparent shrink-0"
                   />
                   <input
                     type="text"
                     value={settings.barColor}
                     onChange={(e) => onChange('barColor', e.target.value)}
-                    className="flex-1 neo-input text-xs uppercase font-mono p-2"
+                    className="w-full min-w-0 bg-transparent text-xs font-mono font-bold uppercase outline-none"
                   />
                 </div>
               </div>
@@ -2262,22 +2262,22 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
             {/* Warna Kedua (Jika Gradasi) */}
             {settings.barColorType === 'gradient' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#FFF8E7] border-2 border-black p-3.5 rounded-xl shadow-[2px_2px_0px_#000]">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-black block">
+                <div className="space-y-1.5 min-w-0">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-black block truncate">
                     Warna Kedua:
                   </label>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 bg-white border-2 border-black rounded-lg p-1.5 shadow-[2px_2px_0px_#000] min-w-0">
                     <input
                       type="color"
                       value={settings.barColor2 || '#A78BFA'}
                       onChange={(e) => onChange('barColor2', e.target.value)}
-                      className="w-10 h-9 border-2 border-black rounded-lg cursor-pointer bg-white p-0.5 shadow-[1.5px_1.5px_0px_#000] shrink-0"
+                      className="w-7 h-7 border border-black rounded cursor-pointer bg-transparent shrink-0"
                     />
                     <input
                       type="text"
                       value={settings.barColor2 || '#A78BFA'}
                       onChange={(e) => onChange('barColor2', e.target.value)}
-                      className="flex-1 neo-input text-xs uppercase font-mono p-2"
+                      className="w-full min-w-0 bg-transparent text-xs font-mono font-bold uppercase outline-none"
                     />
                   </div>
                 </div>
