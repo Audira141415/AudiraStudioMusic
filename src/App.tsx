@@ -27,6 +27,7 @@ import { ThumbnailStudioView } from './components/ThumbnailStudioView';
 import { AICopilotView } from './components/AICopilotView';
 import { BatchQueuePanel } from './components/BatchQueuePanel';
 import { LandingPageView } from './components/LandingPageView';
+import { QueueView } from './components/QueueView';
 
 // Conditional import of Tauri api to prevent browser crash
 let invokeTauri: any = null;
@@ -306,7 +307,7 @@ export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
   // State for Active View/Tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'editor' | 'thumbnail' | 'copilot' | 'history' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'editor' | 'thumbnail' | 'copilot' | 'history' | 'settings' | 'queue'>('dashboard');
   const [activeStep, setActiveStep] = useState<number | null>(1);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -1457,15 +1458,15 @@ export default function App() {
               <span>Riwayat</span>
             </button>
 
-            {/* Render Queue Tab — opens BatchQueuePanel overlay */}
+            {/* Render Queue Tab — opens full page QueueView */}
             <button
-              onClick={() => setIsBatchQueueOpen(true)}
+              onClick={() => setActiveTab('queue')}
               className={`p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all relative ${
-                isBatchQueueOpen
+                activeTab === 'queue'
                   ? 'bg-[#8B5CF6] text-white shadow-[2px_2px_0px_#000] translate-y-[-1px]'
                   : 'bg-white hover:bg-amber-100 text-black shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2.5px_2.5px_0px_#000]'
               }`}
-              title="Render Queue — Paralel"
+              title="Render Queue — Paralel Halaman Utuh"
             >
               <div className="relative">
                 <Layers className="w-5 h-5" />
@@ -2141,6 +2142,15 @@ export default function App() {
             audiraRouterKey={settings.audiraRouterKey}
             audiraRouterModel={settings.audiraRouterModel}
             onSaveAudiraRouterSettings={handleSaveAudiraRouterSettings}
+          />
+        )}
+
+        {activeTab === 'queue' && (
+          <QueueView 
+            onCancelJob={handleCancelQueueJob}
+            maxParallelSlots={maxParallelSlots}
+            onChangeMaxSlots={handleChangeMaxSlots}
+            onNavigateToStudio={() => setActiveTab('editor')}
           />
         )}
       </div>
