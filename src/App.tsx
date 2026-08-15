@@ -1585,6 +1585,7 @@ export default function App() {
               isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden border-r-0' : 'w-[360px] lg:w-[400px] shrink-0'
             }`}>
               <SpectrumEditor
+                isLocked={isExporting}
                 settings={settings}
                 onChange={handleSettingChange}
                 onResetToDefaults={handleResetToDefaults}
@@ -1628,6 +1629,38 @@ export default function App() {
             <div className={`flex-1 p-6 flex flex-col justify-between gap-4 overflow-y-auto w-full h-full bg-[#FAF6ED] transition-all duration-300 ${
               isSidebarCollapsed ? 'pl-16' : ''
             }`}>
+              {/* Draft & Batch Queue Control Header */}
+              {isExporting && (
+                <div className="w-full p-3.5 bg-amber-100 border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 text-amber-950 font-black text-xs select-none">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">⚡</span>
+                    <div>
+                      <div className="uppercase tracking-wider font-black text-amber-950">1 VIDEO SEDANG DI-RENDER DI LATAR BELAKANG ({exportProgress}%)</div>
+                      <p className="text-[10px] text-amber-800 font-bold">Ingin memproses lagu lain sekaligus? Klik tombol di kanan untuk membuat proyek baru ke antrean render!</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAudioFile(null);
+                      setAudioUrl(null);
+                      handleSettingChange('songTitle', 'Judul Lagu Baru');
+                      handleSettingChange('artistName', 'Artis Baru');
+                      setBgFile(null);
+                      setBgUrl(null);
+                      setLogoFile(null);
+                      setVoiceoverFile(null);
+                      setLrcFile(null);
+                      setLrcFileName(null);
+                      alert("✨ Draft Proyek Baru Siap! Silakan upload lagu & background kedua, lalu klik [MULAI RENDER MP4] untuk memasukkannya ke Antrean Render Python.");
+                    }}
+                    className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-black border-2 border-black rounded-lg font-black text-xs uppercase tracking-wider shadow-[2px_2px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
+                  >
+                    <span>➕ BUAT PROYEK/ANTREAN BARU</span>
+                  </button>
+                </div>
+              )}
+
               <div className="w-full flex-1 flex flex-col items-center justify-center min-h-0 max-h-[calc(100vh-230px)]">
                 <PreviewCanvas
                   backgroundImage={bgUrls[currentBgIndex] || bgUrl}
@@ -1833,14 +1866,16 @@ export default function App() {
                       {/* Active/Minimize Badges */}
                       <div className="flex items-center gap-3">
                         {exportProgress < 100 && (
-                          <button
-                            type="button"
-                            onClick={() => setIsConsoleMinimized(true)}
-                            className="px-3 py-1 bg-[#F59E0B] text-black border-2 border-black rounded-lg text-[9px] font-black uppercase tracking-wider shadow-[2px_2px_0px_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer flex items-center gap-1"
-                            title="Sembunyikan ke Latar Belakang (Minimize)"
-                          >
-                            <span>Minimize</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsConsoleMinimized(true)}
+                              className="px-3.5 py-1.5 bg-[#F59E0B] hover:bg-yellow-400 text-black border-2 border-black rounded-lg text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0px_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer flex items-center gap-1.5"
+                              title="Sembunyikan ke Latar Belakang & Buat Antrean Lagu Lain"
+                            >
+                              <span>🚀 MINIMIZE & BUAT ANTREAN LAGU BARU</span>
+                            </button>
+                          </div>
                         )}
                         
                         {exportProgress < 100 ? (

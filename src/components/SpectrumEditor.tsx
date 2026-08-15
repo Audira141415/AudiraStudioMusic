@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 interface SpectrumEditorProps {
+  isLocked?: boolean;
   settings: Record<string, any>;
   onChange: (key: string, value: any) => void;
   onResetToDefaults: () => void;
@@ -203,6 +204,7 @@ const PRESETS = {
 };
 
 export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
+  isLocked = false,
   settings,
   onChange,
   onResetToDefaults,
@@ -259,15 +261,31 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
       'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23831843"/><stop offset="50%" stop-color="%23581c87"/><stop offset="100%" stop-color="%230f172a"/></linearGradient></defs><rect width="100%" height="100%" fill="url(%23g)"/></svg>',
       'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23064e3b"/><stop offset="50%" stop-color="%230284c7"/><stop offset="100%" stop-color="%230f172a"/></linearGradient></defs><rect width="100%" height="100%" fill="url(%23g)"/></svg>'
     ];
-    const selected = gradients[Math.floor(Math.random() * gradients.length)];
+    const chosen = gradients[Math.floor(Math.random() * gradients.length)];
     if (onAiBgGenerated) {
-      onAiBgGenerated(selected, 'AI_Abstract_Gradient_' + Math.floor(Math.random() * 1000) + '.svg');
+      onAiBgGenerated(chosen, `AI-Gradient-${Date.now()}.svg`);
     }
   };
 
 
   return (
-    <div className="w-full flex flex-col h-full bg-[#FAF6ED] p-6 overflow-y-auto space-y-4 select-none">
+    <div className={`w-full flex flex-col h-full bg-[#FAF6ED] p-6 overflow-y-auto space-y-4 select-none ${isLocked ? 'pointer-events-none opacity-75' : ''}`}>
+      
+      {/* Lock Warning Banner */}
+      {isLocked && (
+        <div className="p-3.5 bg-amber-100 border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 text-amber-950 font-bold text-xs pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🔒</span>
+            <div>
+              <div className="font-extrabold uppercase tracking-wider text-amber-900 text-[11px]">PROYEK DRAFT INI SEDANG DI-RENDER DALAM ANTREAN</div>
+              <div className="text-[9px] font-bold text-amber-800/80">Fitur editing dikunci agar tidak merusak proses render. Klik "+ Proyek Baru" di atas untuk membuat antrean berikutnya.</div>
+            </div>
+          </div>
+          <span className="text-[9px] bg-amber-400 border border-black px-2 py-0.5 rounded font-black uppercase text-black shrink-0">
+            LOCKED
+          </span>
+        </div>
+      )}
       
       {/* Title Header */}
       <div className="flex items-center justify-between mb-2 pl-9 pr-1">
