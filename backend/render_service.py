@@ -1132,6 +1132,18 @@ def render_video(config, job_ref=None):
         except Exception as e:
             print(f"Warning: Failed to decode base64 voiceover: {e}")
 
+    bg_audio_path = config.get("bgAudioPath")
+    bg_audio_data = config.get("bgAudioData")
+    if bg_audio_data and isinstance(bg_audio_data, str) and bg_audio_data.startswith("data:"):
+        try:
+            header, encoded = bg_audio_data.split(",", 1)
+            bg_audio_bytes = base64.b64decode(encoded)
+            bg_audio_path = os.path.join(backend_dir, "temp_uploaded_bgaudio.mp3")
+            with open(bg_audio_path, "wb") as f:
+                f.write(bg_audio_bytes)
+        except Exception as e:
+            print(f"Warning: Failed to decode base64 bg audio: {e}")
+
     font_data = config.get("fontData")
     if font_data and isinstance(font_data, str) and font_data.startswith("data:"):
         try:
@@ -1375,6 +1387,12 @@ def render_video(config, job_ref=None):
         inputs_list.append(("-i", voiceover_path))
         voiceover_idx = len(inputs_list) - 1
 
+    # Optional Input 4: Layer 2 Background Audio Track
+    bg_audio_idx = None
+    if bg_audio_path and os.path.exists(bg_audio_path):
+        inputs_list.append(("-stream_loop", "-1", "-i", bg_audio_path))
+        bg_audio_idx = len(inputs_list) - 1
+
     particles_idx = None
     has_particles = False
     p_width = width
@@ -1571,6 +1589,26 @@ def render_video(config, job_ref=None):
             else:
                 filter_graph += f"; {main_audio_label}[{voiceover_idx}:a]amix=inputs=2:duration=first[mixed_vo]"
             main_audio_label = "[mixed_vo]"
+
+    # Layer 2 Background Audio / Anti-Copyright Masker Filter
+    if settings.get("enableBgAudio", False):
+        bg_vol_pct = settings.get("bgAudioVolume", 15)
+        vol_factor = max(0.01, min(0.5, bg_vol_pct / 100.0))
+        preset_type = settings.get("bgAudioPreset", "none")
+        
+        if bg_audio_idx is not None:
+            filter_graph += f"; [{bg_audio_idx}:a]volume={vol_factor}[bg_layer_vol]; {main_audio_label}[bg_layer_vol]amix=inputs=2:duration=first[a_bgaudio_mixed]"
+            main_audio_label = "[a_bgaudio_mixed]"
+        elif preset_type and preset_type != "none":
+            if preset_type == "rain":
+                filter_graph += f"; anoisesrc=color=brown:amplitude={vol_factor}:sample_rate=44100,lowpass=f=800[synth_rain]; {main_audio_label}[synth_rain]amix=inputs=2:duration=first[a_bgaudio_mixed]"
+            elif preset_type == "crackle":
+                filter_graph += f"; anoisesrc=color=pink:amplitude={vol_factor}:sample_rate=44100,bandpass=f=1200:width_type=h:width=500[synth_crackle]; {main_audio_label}[synth_crackle]amix=inputs=2:duration=first[a_bgaudio_mixed]"
+            elif preset_type == "cafe":
+                filter_graph += f"; anoisesrc=color=pink:amplitude={vol_factor}:sample_rate=44100,bandpass=f=1000:width_type=h:width=800[synth_cafe]; {main_audio_label}[synth_cafe]amix=inputs=2:duration=first[a_bgaudio_mixed]"
+            else: # pink_noise
+                filter_graph += f"; anoisesrc=color=pink:amplitude={vol_factor}:sample_rate=44100[synth_pink]; {main_audio_label}[synth_pink]amix=inputs=2:duration=first[a_bgaudio_mixed]"
+            main_audio_label = "[a_bgaudio_mixed]"
 
     # Mix background video audio if configured
     bg_video_vol = settings.get("bgVideoVolume", 0)

@@ -863,6 +863,8 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
                             config['settings']['customFontPath'] = font_path
                         if lyric_path:
                             config['lyricPath'] = lyric_path
+                        if bg_audio_path:
+                            config['bgAudioPath'] = bg_audio_path
                     else:
                         raise ValueError("Missing 'settings' part in multipart request")
                 except Exception as e:
