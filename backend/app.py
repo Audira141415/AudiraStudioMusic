@@ -185,35 +185,74 @@ def get_gpus():
     import subprocess
     try:
         cmd = ["wmic", "path", "win32_VideoController", "get", "name"]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-        lines = [line.strip() for line in result.stdout.split("\n") if line.strip()]
-        if len(lines) > 1:
-            gpus = []
-            for g in lines[1:]:
-                if g != "Name" and g not in gpus:
-                    gpus.append(g)
-            return gpus
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
+        if result.returncode == 0:
+            lines = [line.strip() for line in result.stdout.split("\n") if line.strip()]
+            if len(lines) > 1:
+                gpus = [g for g in lines[1:] if g != "Name" and g]
+                if gpus:
+                    return gpus
     except Exception:
         pass
+
+    # PowerShell fallback if WMIC is missing or disabled in Windows 11
+    try:
+        ps_cmd = ["powershell", "-NoProfile", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"]
+        result = subprocess.run(ps_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
+        if result.returncode == 0:
+            gpus = [line.strip() for line in result.stdout.split("\n") if line.strip()]
+            if gpus:
+                return gpus
+    except Exception:
+        pass
+
     return ["Default Graphic Adapter"]
 
 def get_total_ram():
     import subprocess
     try:
         cmd = ["wmic", "computersystem", "get", "TotalPhysicalMemory"]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-        lines = [line.strip() for line in result.stdout.split("\n") if line.strip()]
-        if len(lines) > 1:
-            bytes_val = int(lines[1])
-            return round(bytes_val / (1024 ** 3)) # Convert to GB
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
+        if result.returncode == 0:
+            lines = [line.strip() for line in result.stdout.split("\n") if line.strip()]
+            if len(lines) > 1 and lines[1].isdigit():
+                bytes_val = int(lines[1])
+                return round(bytes_val / (1024 ** 3))
     except Exception:
         pass
+
+    # PowerShell fallback
+    try:
+        ps_cmd = ["powershell", "-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"]
+        result = subprocess.run(ps_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
+        if result.returncode == 0 and result.stdout.strip().isdigit():
+            bytes_val = int(result.stdout.strip())
+            return round(bytes_val / (1024 ** 3))
+    except Exception:
+        pass
+
     return 8 # Default fallback
+
+def get_ffmpeg_bin():
+    import shutil
+    path = shutil.which("ffmpeg")
+    if path:
+        return path
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(sys.executable)
+        candidate = os.path.join(exe_dir, "ffmpeg.exe")
+        if os.path.exists(candidate):
+            return candidate
+    candidate = os.path.join(os.getcwd(), "ffmpeg.exe")
+    if os.path.exists(candidate):
+        return candidate
+    return "ffmpeg"
 
 def get_ffmpeg_encoders():
     import subprocess
     try:
-        result = subprocess.run(["ffmpeg", "-encoders"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        ffmpeg_bin = get_ffmpeg_bin()
+        result = subprocess.run([ffmpeg_bin, "-encoders"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
         encoders = []
         for line in result.stdout.split("\n"):
             line_stripped = line.strip()
