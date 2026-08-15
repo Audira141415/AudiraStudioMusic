@@ -39,6 +39,7 @@ import { AudioEqualizerModal } from './components/AudioEqualizerModal';
 import { BatchMultiSongModal } from './components/BatchMultiSongModal';
 import { AppUserGuideModal } from './components/AppUserGuideModal';
 import { UserGuideView } from './components/UserGuideView';
+import { LicenseManagerModal } from './components/LicenseManagerModal';
 
 // Conditional import of Tauri api to prevent browser crash
 let invokeTauri: any = null;
@@ -369,6 +370,18 @@ export default function App() {
   const [isEqModalOpen, setIsEqModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
+  const [isLicenseManagerOpen, setIsLicenseManagerOpen] = useState(false);
+
+  // Dynamic Theme State & Handler
+  const [currentTheme, setCurrentTheme] = useState<string>(() => {
+    return localStorage.getItem('audira_app_theme') || 'warm_cream';
+  });
+
+  const handleSelectTheme = (newTheme: string) => {
+    setCurrentTheme(newTheme);
+    localStorage.setItem('audira_app_theme', newTheme);
+    setSettings(prev => ({ ...prev, appTheme: newTheme }));
+  };
 
   const handleApplyPreset = (presetSettings: any) => {
     setSettings(prev => ({ ...prev, ...presetSettings }));
@@ -1798,8 +1811,17 @@ export default function App() {
     return <LandingPageView onEnterStudio={() => setIsAuthenticated(true)} />;
   }
 
+  const themeBgMap: Record<string, string> = {
+    warm_cream: 'bg-[#FAF6ED]',
+    cyberpunk_dark: 'bg-[#08080A] text-cyan-100',
+    purple_neon: 'bg-[#0F0B1E] text-purple-100',
+    retro_pastel: 'bg-[#F4E8D1] text-[#1B4332]'
+  };
+
+  const activeThemeClass = themeBgMap[currentTheme] || 'bg-[#FAF6ED]';
+
   return (
-    <div className="flex flex-col h-screen bg-[#FAF6ED] font-sans antialiased overflow-hidden select-none">
+    <div className={`flex flex-col h-screen ${activeThemeClass} font-sans antialiased overflow-hidden select-none`} data-theme={currentTheme}>
       {/* 1. Header Navigation Bar */}
       <header className="px-6 py-4 bg-[#FAF6ED] border-b-[3px] border-black flex justify-between items-center z-10">
         <div className="flex items-center gap-3">
@@ -2008,6 +2030,11 @@ export default function App() {
             setActiveTab={setActiveTab}
             onOpenDirectDownload={handleOpenDirectDownload}
             onOpenStemSeparator={() => setIsStemModalOpen(true)}
+            onOpenPresetModal={() => setIsPresetModalOpen(true)}
+            onOpenBatchModal={() => setIsBatchModalOpen(true)}
+            onOpenLicenseManager={() => setIsLicenseManagerOpen(true)}
+            userRole={userProfile.role}
+            licenseKey={userProfile.licenseKey}
           />
         )}
 
@@ -2739,6 +2766,7 @@ export default function App() {
             audiraRouterKey={settings.audiraRouterKey}
             audiraRouterModel={settings.audiraRouterModel}
             onSaveAudiraRouterSettings={handleSaveAudiraRouterSettings}
+            onSelectTheme={handleSelectTheme}
           />
         )}
 
@@ -2759,6 +2787,7 @@ export default function App() {
               accountsList={userAccountsList}
               onUpdateUserRole={handleUpdateUserRole}
               onAddLicenseKey={handleAddLicenseKey}
+              onOpenLicenseManager={() => setIsLicenseManagerOpen(true)}
             />
           </main>
         )}
@@ -2811,6 +2840,12 @@ export default function App() {
         <AppUserGuideModal
           isOpen={isUserGuideOpen}
           onClose={() => setIsUserGuideOpen(false)}
+        />
+        {/* SuperAdmin License Manager Suite Modal */}
+        <LicenseManagerModal
+          isOpen={isLicenseManagerOpen}
+          onClose={() => setIsLicenseManagerOpen(false)}
+          currentUserRole={userProfile.role}
         />
       </div>
 

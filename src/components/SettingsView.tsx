@@ -17,6 +17,7 @@ interface SettingsViewProps {
   audiraRouterKey: string;
   audiraRouterModel: string;
   onSaveAudiraRouterSettings: (useRouter: boolean, url: string, key: string, model: string) => void;
+  onSelectTheme?: (theme: string) => void;
 }
 
 export function SettingsView({
@@ -29,7 +30,8 @@ export function SettingsView({
   audiraRouterUrl,
   audiraRouterKey,
   audiraRouterModel,
-  onSaveAudiraRouterSettings
+  onSaveAudiraRouterSettings,
+  onSelectTheme
 }: SettingsViewProps) {
   const [apiKey, setApiKey] = useState(geminiApiKey);
   const [path, setPath] = useState(outputPath);
@@ -233,7 +235,10 @@ export function SettingsView({
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setAppTheme(t.id)}
+                onClick={() => {
+                  setAppTheme(t.id);
+                  if (onSelectTheme) onSelectTheme(t.id);
+                }}
                 className={`p-2.5 border-2 border-black rounded-lg text-xs font-black text-center transition-all cursor-pointer ${
                   appTheme === t.id
                     ? 'bg-purple-600 text-white shadow-[2px_2px_0px_#000]'

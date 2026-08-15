@@ -11,7 +11,6 @@ import {
   Sparkles,
   Users,
   Copy,
-  CheckCircle2,
   Mail,
   Building,
   Calendar,
@@ -47,6 +46,7 @@ interface UserProfileViewProps {
   accountsList: UserAccountItem[];
   onUpdateUserRole: (userId: string, newRole: 'Super Admin' | 'Admin' | 'User') => void;
   onAddLicenseKey: (key: string, role: 'Super Admin' | 'Admin' | 'User') => void;
+  onOpenLicenseManager?: () => void;
 }
 
 export const UserProfileView: React.FC<UserProfileViewProps> = ({
@@ -54,7 +54,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   onUpdateProfile,
   accountsList,
   onUpdateUserRole,
-  onAddLicenseKey
+  onAddLicenseKey,
+  onOpenLicenseManager
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'profile' | 'license' | 'management'>('profile');
   const [isEditing, setIsEditing] = useState(false);
@@ -169,14 +170,23 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         </div>
 
         {/* Quick License Status Pill */}
-        <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_#000] space-y-1 text-right self-stretch md:self-auto flex flex-col justify-center">
-          <span className="text-[10px] font-black uppercase text-black/60 block">Status Lisensi Pengguna:</span>
-          <span className="font-mono font-black text-xs text-purple-700 bg-purple-100 px-2.5 py-1 rounded border border-black inline-block">
-            {profile.licenseKey || 'AUDIRA-2026-VIP-FULL'}
-          </span>
-          <span className="text-[9px] font-bold text-emerald-600 flex items-center justify-end gap-1 pt-0.5">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Terverifikasi VIP AUDIRA © 2026
-          </span>
+        <div className="bg-white border-2 border-black p-4 rounded-xl shadow-[3px_3px_0px_#000] space-y-2 text-right self-stretch md:self-auto flex flex-col justify-center">
+          <div>
+            <span className="text-[10px] font-black uppercase text-black/60 block">Status Lisensi Pengguna:</span>
+            <span className="font-mono font-black text-xs text-purple-700 bg-purple-100 px-2.5 py-1 rounded border border-black inline-block">
+              {profile.licenseKey || 'AUDIRA-2026-VIP-FULL'}
+            </span>
+          </div>
+
+          {onOpenLicenseManager && (
+            <button
+              onClick={onOpenLicenseManager}
+              className="px-3 py-1.5 bg-[#8B5CF6] hover:bg-purple-700 text-white font-black text-[10px] uppercase tracking-wider rounded-lg border border-black shadow-[1.5px_1.5px_0px_#000] cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Key className="w-3.5 h-3.5 text-amber-400" />
+              <span>SuperAdmin License Suite</span>
+            </button>
+          )}
         </div>
       </div>
 
