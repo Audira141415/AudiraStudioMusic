@@ -1463,14 +1463,14 @@ export default function App() {
               className={`p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all relative ${
                 isBatchQueueOpen
                   ? 'bg-[#8B5CF6] text-white shadow-[2px_2px_0px_#000] translate-y-[-1px]'
-                  : 'bg-white text-black shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2px_2px_0px_#000]'
+                  : 'bg-white hover:bg-amber-100 text-black shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2.5px_2.5px_0px_#000]'
               }`}
               title="Render Queue — Paralel"
             >
               <div className="relative">
                 <Layers className="w-5 h-5" />
                 {activeRenderCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-green-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border border-black">
+                  <span className="absolute -top-2 -right-2 w-4.5 h-4.5 bg-[#10B981] text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-black animate-pulse shadow-[1px_1px_0px_#000]">
                     {activeRenderCount}
                   </span>
                 )}
@@ -1479,15 +1479,20 @@ export default function App() {
             </button>
           </div>
 
+          {/* Section Divider Line */}
+          <div className="w-full px-3">
+            <div className="border-t-2 border-black/20 my-1" />
+          </div>
+
           <div className="w-full px-2 flex flex-col gap-3">
             <button
               onClick={() => setActiveTab('settings')}
               className={`p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full ${
                 activeTab === 'settings'
                   ? 'bg-[#8B5CF6] text-white shadow-[2px_2px_0px_#000] translate-y-[-1px]'
-                  : 'bg-white text-black shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2px_2px_0px_#000]'
+                  : 'bg-white hover:bg-amber-100 text-black shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2.5px_2.5px_0px_#000]'
               }`}
-              title="Pengaturan"
+              title="Pengaturan Studio"
             >
               <SettingsIcon className="w-5 h-5" />
               <span>Setelan</span>
@@ -1495,7 +1500,7 @@ export default function App() {
 
             <button
               onClick={handleLogout}
-              className="p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full bg-red-100 hover:bg-red-200 text-red-700 shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] active:translate-y-[1px] cursor-pointer"
+              className="p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full bg-red-100 hover:bg-red-200 text-red-700 shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2.5px_2.5px_0px_#000] active:translate-y-[1px] cursor-pointer"
               title="Keluar dari Studio (Lock Screen)"
             >
               <LogOut className="w-5 h-5" />
