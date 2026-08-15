@@ -992,7 +992,8 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
 def run_server(port=1426):
-    init_system_specs()
+    # Pre-initialize system specs asynchronously in a background thread so HTTP server binds IMMEDIATELY
+    threading.Thread(target=init_system_specs, daemon=True).start()
     server_address = ('', port)
     httpd = HTTPServer(server_address, RenderHTTPRequestHandler)
     print(f"==================================================")

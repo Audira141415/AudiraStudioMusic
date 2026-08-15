@@ -79,13 +79,13 @@ export const OutputMetadataDrawer: React.FC<OutputMetadataDrawerProps> = ({
     let attempts = 0;
     let success = false;
     
-    while (attempts < 4 && !success) {
+    while (attempts < 6 && !success) {
       try {
         attempts++;
         const res = await fetch('http://localhost:1426/system_specs');
         if (res.ok) {
           const data = await res.json();
-          if (data && data.cpu) {
+          if (data && (data.cpu || data.gpus)) {
             setSpecs(data);
             success = true;
             break;
@@ -94,8 +94,8 @@ export const OutputMetadataDrawer: React.FC<OutputMetadataDrawerProps> = ({
       } catch (e) {
         console.warn(`Attempt ${attempts} failed to fetch system specs:`, e);
       }
-      if (!success && attempts < 4) {
-        await new Promise(r => setTimeout(r, 600));
+      if (!success && attempts < 6) {
+        await new Promise(r => setTimeout(r, 800));
       }
     }
     setLoadingSpecs(false);
