@@ -1,4 +1,5 @@
-import { Clock, FolderOpen, Trash2, CheckCircle2, XCircle, Terminal, Activity, FileVideo2, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, FolderOpen, Trash2, CheckCircle2, XCircle, Terminal, Activity, FileVideo2, Loader2, Zap } from 'lucide-react';
 
 export interface HistoryItem {
   id: string;
@@ -56,6 +57,31 @@ export function HistoryView({
   onCancelExport
 }: HistoryViewProps) {
   
+  const [parallelSlots, setParallelSlots] = useState<any[]>([
+    { slotId: 0, status: 'idle' },
+    { slotId: 1, status: 'idle' },
+    { slotId: 2, status: 'idle' }
+  ]);
+  const [queuedServerJobs, setQueuedServerJobs] = useState<any[]>([]);
+  const [serverActiveCount, setServerActiveCount] = useState(0);
+
+  useEffect(() => {
+    const pollQueue = async () => {
+      try {
+        const res = await fetch('http://localhost:1426/queue_status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.parallelSlots) setParallelSlots(data.parallelSlots);
+          if (data.queuedJobs) setQueuedServerJobs(data.queuedJobs);
+          if (typeof data.activeCount === 'number') setServerActiveCount(data.activeCount);
+        }
+      } catch (e) {}
+    };
+    pollQueue();
+    const interval = setInterval(pollQueue, 800);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleOpenFolder = async (filePath: string) => {
     if (revealFile) {
       try {
@@ -70,7 +96,15 @@ export function HistoryView({
   };
 
   const activeJob = history.find(h => h.status === 'Exporting' || h.status.toLowerCase().includes('rendering'));
-  const queuedJobs = history.filter(h => h.status === 'Queued');
+  const localQueued = history.filter(h => h.status === 'Queued');
+  const queuedJobs = localQueued.length > 0 ? localQueued : queuedServerJobs.map(j => ({
+    id: j.id,
+    fileName: j.title || j.outputPath || 'Visualizer Video',
+    resolution: '1080p',
+    fps: 30,
+    date: j.timestamp || 'Baru Saja',
+    status: 'Queued'
+  }));
   const pastJobs = history.filter(h => h.status !== 'Queued' && h.status !== 'Exporting' && !h.status.toLowerCase().includes('rendering'));
 
   const formatElapsedReal = (seconds: number) => {
@@ -104,6 +138,86 @@ export function HistoryView({
             <span>Hapus Semua Riwayat</span>
           </button>
         )}
+      </div>
+
+      {/* Multi-Process 3-Slot Parallel Render Dashboard */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black text-lg flex items-center gap-2 text-black">
+            <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
+            <span className="border-b-4 border-amber-400 pb-0.5">Sistem Slot Render Paralel (Maksimal 3 Slot Akselerasi)</span>
+          </h3>
+          <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-lg border-2 border-black neo-shadow-sm uppercase">
+            {serverActiveCount > 0 ? `${serverActiveCount} Slot Aktif Berjalan` : 'Semua Slot Siap'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[0, 1, 2].map((slotIdx) => {
+            const slotData = parallelSlots[slotIdx] || { slotId: slotIdx, status: 'idle' };
+            const isSlotActive = (isExporting && slotIdx === 0) || slotData.status === 'rendering';
+            const slotProgress = slotIdx === 0 ? exportProgress : (slotData.progress || 0);
+            const slotTitle = slotData.title || (slotIdx === 0 && activeJob ? activeJob.fileName : `Slot ${slotIdx + 1}`);
+
+            return (
+              <div 
+                key={slotIdx} 
+                className={`border-[3px] border-black rounded-2xl p-4 shadow-[3.5px_3.5px_0px_#000] flex flex-col justify-between space-y-3 transition-all ${
+                  isSlotActive ? 'bg-indigo-50 border-indigo-600' : 'bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg border-2 border-black shadow-[1px_1px_0px_#000] ${
+                    slotIdx === 0 ? 'bg-[#8B5CF6] text-white' : slotIdx === 1 ? 'bg-[#06B6D4] text-white' : 'bg-[#F59E0B] text-black'
+                  }`}>
+                    SLOT {slotIdx + 1}
+                  </span>
+                  {isSlotActive ? (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-800 bg-emerald-100 border border-black px-2 py-0.5 rounded-full uppercase animate-pulse">
+                      ● MERENDER ({slotProgress}%)
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-black text-slate-500 bg-slate-100 border border-black/20 px-2 py-0.5 rounded-full uppercase">
+                      IDLE / SIAP
+                    </span>
+                  )}
+                </div>
+
+                {isSlotActive ? (
+                  <div className="space-y-2.5">
+                    <div>
+                      <h4 className="font-extrabold text-xs text-black truncate" title={slotTitle}>
+                        {slotTitle}
+                      </h4>
+                      <p className="text-[9px] font-bold text-slate-500 mt-0.5">
+                        Encoder: {renderEncoder}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="h-3.5 w-full bg-white border-2 border-black rounded-full overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)]">
+                        <div 
+                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300"
+                          style={{ width: `${slotProgress}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[8px] font-black text-black/60 uppercase">
+                        <span>Waktu: {formatElapsedReal(renderElapsedReal)}</span>
+                        <span>{slotProgress}%</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-4 text-center space-y-0.5">
+                    <span className="text-xl block">⚡</span>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Slot {slotIdx + 1} Kosong</p>
+                    <p className="text-[8px] font-bold text-slate-400">Siap menerima pekerjaan dari Studio</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* 1. Active Render Dashboard */}
