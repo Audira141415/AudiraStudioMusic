@@ -1383,19 +1383,19 @@ export default function App() {
       outputPath: exportConfig.outputPath
     };
 
+    const formData = new FormData();
+    formData.append('settings', JSON.stringify(payloadMetadata));
+    if (audioFile) formData.append('audioFile', audioFile);
+    if (bgFile) formData.append('backgroundFile', bgFile);
+    if (logoFile) formData.append('logoFile', logoFile);
+    if (voiceoverFile) formData.append('voiceoverFile', voiceoverFile);
+    if (customFontFile) formData.append('fontFile', customFontFile);
+    if (lrcFile) formData.append('lyricFile', lrcFile);
+    if (bgAudioFile) formData.append('bgAudioFile', bgAudioFile);
+
     // Prioritize local Python HTTP Server on port 1426 (avoids Tauri Rust IPC payload serialization size limits)
     try {
       setExportStatus('Menghubungkan ke Python Render Backend (http://localhost:1426)...');
-      
-      const formData = new FormData();
-      formData.append('settings', JSON.stringify(payloadMetadata));
-      if (audioFile) formData.append('audioFile', audioFile);
-      if (bgFile) formData.append('backgroundFile', bgFile);
-      if (logoFile) formData.append('logoFile', logoFile);
-      if (voiceoverFile) formData.append('voiceoverFile', voiceoverFile);
-      if (customFontFile) formData.append('fontFile', customFontFile);
-      if (lrcFile) formData.append('lyricFile', lrcFile);
-      if (bgAudioFile) formData.append('bgAudioFile', bgAudioFile);
 
       const res = await fetch('http://localhost:1426/export', {
         method: 'POST',
@@ -1507,9 +1507,53 @@ export default function App() {
       }, 500);
 
     } catch (httpErr) {
-      console.warn("Python HTTP server offline/unreachable, falling back to local runner...", httpErr);
+      console.warn("Python HTTP server offline/unreachable, attempting backend auto-reconnect...", httpErr);
 
       if (invokeTauri) {
+        try {
+          setExportStatus('Menghubungkan ulang ke Backend Subprocess...');
+          await invokeTauri('start_python_backend');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const retryRes = await fetch('http://localhost:1426/export', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (retryRes.ok) {
+            setRenderElapsedReal(0);
+            setRenderRealProgress('0.0%');
+            setRenderElapsedVideo('--:--');
+            setRenderTotalVideo('--:--');
+            setRenderEncoder('Mempersiapkan...');
+            let jobId = newHistoryId;
+            try {
+              const resData = await retryRes.json();
+              if (resData.jobId) jobId = resData.jobId;
+            } catch (e) {}
+
+            const pollInterval = setInterval(async () => {
+              try {
+                const progRes = await fetch(`http://localhost:1426/progress?jobId=${jobId}`);
+                if (progRes.ok) {
+                  const data = await progRes.json();
+                  setExportProgress(data.progress || 0);
+                  setExportStatus(data.status || 'Rendering...');
+                  if (data.progress >= 100 || !data.isRendering) {
+                    clearInterval(pollInterval);
+                    setIsExporting(false);
+                  }
+                }
+              } catch (e) {
+                clearInterval(pollInterval);
+              }
+            }, 500);
+            return;
+          }
+        } catch (retryErr) {
+          console.warn("HTTP retry failed, proceeding to direct sidecar invoke:", retryErr);
+        }
+
         // Fallback to Rust subprocess runner in Tauri mode
         try {
           setExportStatus('Menjalankan rendering via Rust Controller subprocess...');
@@ -2291,6 +2335,25 @@ export default function App() {
                       <div className="flex items-center gap-3">
                         {exportProgress < 100 && (
                           <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  setExportStatus('Menghubungkan ulang backend HTTP (Port 1426)...');
+                                  if (invokeTauri) {
+                                    await invokeTauri('start_python_backend');
+                                  }
+                                  alert('⚡ Sinyal hubung ulang backend dikirim! Backend Python di-refresh pada port 1426.');
+                                } catch (err) {
+                                  alert(`Peringatan reconnect: ${err}`);
+                                }
+                              }}
+                              className="px-3 py-1.5 bg-emerald-400 hover:bg-emerald-300 text-black border-2 border-black rounded-lg text-[10px] font-black uppercase tracking-wider shadow-[2px_2px_0px_#000] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer flex items-center gap-1"
+                              title="Paksa Hubungkan Ulang Backend Python di Port 1426"
+                            >
+                              <span>🔌 RECONNECT BACKEND</span>
+                            </button>
+
                             <button
                               type="button"
                               onClick={() => setIsConsoleMinimized(true)}

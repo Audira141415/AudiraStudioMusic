@@ -28,48 +28,107 @@ fn export_video(app: AppHandle, config: String) -> Result<(), String> {
     let mut file = File::create(&config_path).map_err(|e| e.to_string())?;
     file.write_all(config.as_bytes()).map_err(|e| e.to_string())?;
     
-    // 2. Spawn python backend process via Tauri Sidecar
-    let sidecar = app.shell().sidecar("app").map_err(|e| e.to_string())?;
-    
-    let (mut rx, _child) = sidecar
-        .args(["--config", config_path.to_str().unwrap()])
-        .spawn()
-        .map_err(|e| format!("Failed to spawn Python sidecar: {}", e))?;
-        
-    let app_clone = app.clone();
-    
-    // 3. Process Python output asynchronously
-    tauri::async_runtime::spawn(async move {
-        while let Some(event) = rx.recv().await {
-            match event {
-                CommandEvent::Stdout(line) | CommandEvent::Stderr(line) => {
-                    let line_str = String::from_utf8_lossy(&line);
-                    let trimmed = line_str.trim();
-                    if trimmed.is_empty() { continue; }
-                    
-                    // Emit everything to the terminal log
-                    let _ = app_clone.emit("render-log", trimmed.to_string());
-                    
-                    // Check for custom progress output: "PROGRESS:<val>:<msg>"
-                    if trimmed.starts_with("PROGRESS:") {
-                        let parts: Vec<&str> = trimmed.splitn(3, ':').collect();
-                        if parts.len() >= 3 {
-                            if let Ok(progress_val) = parts[1].parse::<u32>() {
-                                let status_text = parts[2].to_string();
-                                let _ = app_clone.emit("render-progress", ProgressPayload {
-                                    progress: progress_val,
-                                    status: status_text,
-                                });
+    let mut spawned = false;
+
+    // 2. Try spawning python backend process via Tauri Sidecar
+    if let Ok(sidecar) = app.shell().sidecar("app") {
+        if let Ok((mut rx, _child)) = sidecar
+            .args(["--config", config_path.to_str().unwrap()])
+            .spawn()
+        {
+            spawned = true;
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+                while let Some(event) = rx.recv().await {
+                    match event {
+                        CommandEvent::Stdout(line) | CommandEvent::Stderr(line) => {
+                            let line_str = String::from_utf8_lossy(&line);
+                            let trimmed = line_str.trim();
+                            if trimmed.is_empty() { continue; }
+                            
+                            let _ = app_clone.emit("render-log", trimmed.to_string());
+                            
+                            if trimmed.starts_with("PROGRESS:") {
+                                let parts: Vec<&str> = trimmed.splitn(3, ':').collect();
+                                if parts.len() >= 3 {
+                                    if let Ok(progress_val) = parts[1].parse::<u32>() {
+                                        let status_text = parts[2].to_string();
+                                        let _ = app_clone.emit("render-progress", ProgressPayload {
+                                            progress: progress_val,
+                                            status: status_text,
+                                        });
+                                    }
+                                }
                             }
-                        }
+                        },
+                        _ => {}
                     }
-                },
-                _ => {}
+                }
+            });
+        }
+    }
+
+    // 3. Direct process execution fallback if Tauri sidecar API fails
+    if !spawned {
+        println!("Attempting direct execution fallback for export_video...");
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                let candidate_paths = vec![
+                    exe_dir.join("app-x86_64-pc-windows-msvc.exe"),
+                    exe_dir.join("binaries").join("app-x86_64-pc-windows-msvc.exe"),
+                    exe_dir.join("_up_").join("binaries").join("app-x86_64-pc-windows-msvc.exe"),
+                ];
+                for bin_path in candidate_paths {
+                    if bin_path.exists() {
+                        println!("Found backend binary for render at: {:?}. Spawning...", bin_path);
+                        let config_arg = config_path.to_str().unwrap().to_string();
+                        let app_clone = app.clone();
+                        std::thread::spawn(move || {
+                            use std::io::{BufRead, BufReader};
+                            use std::process::Stdio;
+                            if let Ok(mut child) = std::process::Command::new(&bin_path)
+                                .arg("--config")
+                                .arg(&config_arg)
+                                .stdout(Stdio::piped())
+                                .stderr(Stdio::piped())
+                                .spawn()
+                            {
+                                if let Some(stdout) = child.stdout.take() {
+                                    let reader = BufReader::new(stdout);
+                                    for line in reader.lines().flatten() {
+                                        let trimmed = line.trim();
+                                        if trimmed.is_empty() { continue; }
+                                        let _ = app_clone.emit("render-log", trimmed.to_string());
+                                        if trimmed.starts_with("PROGRESS:") {
+                                            let parts: Vec<&str> = trimmed.splitn(3, ':').collect();
+                                            if parts.len() >= 3 {
+                                                if let Ok(progress_val) = parts[1].parse::<u32>() {
+                                                    let status_text = parts[2].to_string();
+                                                    let _ = app_clone.emit("render-progress", ProgressPayload {
+                                                        progress: progress_val,
+                                                        status: status_text,
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                let _ = child.wait();
+                            }
+                        });
+                        spawned = true;
+                        break;
+                    }
+                }
             }
         }
-    });
+    }
 
-    Ok(())
+    if spawned {
+        Ok(())
+    } else {
+        Err("Could not spawn Python render backend".to_string())
+    }
 }
 
 // Tauri command to manually/automatically start/reconnect Python HTTP server
