@@ -1393,6 +1393,25 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
 
             const yPos = posY + index * (titleFontSize * 1.1);
 
+            ctx.save();
+
+            // Bass-Reactive Audio Text Pulsing & Glow
+            let bassEnergy = 0;
+            if (dataArray && dataArray.length > 8) {
+              let sum = 0;
+              for (let b = 0; b < 6; b++) sum += dataArray[b];
+              bassEnergy = (sum / 6) / 255.0;
+            }
+
+            if (liveSettings.showBassReactiveText !== false && bassEnergy > 0.08) {
+              const pulseScale = 1.0 + bassEnergy * 0.08 * (liveSettings.bassReactiveSensitivity ?? 1.0);
+              ctx.translate(posX, yPos);
+              ctx.scale(pulseScale, pulseScale);
+              ctx.translate(-posX, -yPos);
+              ctx.shadowColor = liveSettings.barColor || '#8B5CF6';
+              ctx.shadowBlur = 12 + bassEnergy * 25;
+            }
+
             // Draw outline stroke if selected
             if (liveSettings.titleOutline) {
               ctx.strokeStyle = '#000000';
@@ -1420,7 +1439,93 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           ctx.restore();
         }
 
-        // Draw LRC Karaoke Lyrics
+        // Draw Lower-Third Vinyl Music Card Overlay Badge
+        if (liveSettings.showMusicCardBadge) {
+          ctx.save();
+          const cardX = 40;
+          const cardY = 585;
+          const cardW = 340;
+          const cardH = 95;
+          const radius = 16;
+
+          // Draw Card Background with Dark Glassmorphism
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+          ctx.strokeStyle = '#8B5CF6';
+          ctx.lineWidth = 2.5;
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+          ctx.shadowBlur = 12;
+
+          ctx.beginPath();
+          ctx.roundRect(cardX, cardY, cardW, cardH, radius);
+          ctx.fill();
+          ctx.stroke();
+
+          // Draw Spinning Vinyl Disc
+          const vinylCenterX = cardX + 52;
+          const vinylCenterY = cardY + 47;
+          const vinylRadius = 36;
+          const spinAngle = (playTime * 2.5) % (Math.PI * 2);
+
+          ctx.save();
+          ctx.translate(vinylCenterX, vinylCenterY);
+          ctx.rotate(spinAngle);
+
+          // Outer Black Vinyl Disc
+          ctx.fillStyle = '#111111';
+          ctx.beginPath();
+          ctx.arc(0, 0, vinylRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Vinyl Grooves
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = 1;
+          for (let r = 12; r < vinylRadius - 2; r += 6) {
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // Center Label Disc (Purple/Gold)
+          ctx.fillStyle = '#8B5CF6';
+          ctx.beginPath();
+          ctx.arc(0, 0, 12, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Center Hole
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(0, 0, 3, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+
+          // Draw Music Details (Title & Artist)
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 15px "Poppins", sans-serif';
+          ctx.textAlign = 'left';
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = 4;
+          const cardTitle = liveSettings.songTitle || 'Judul Lagu';
+          const cardArtist = liveSettings.artistName || 'Artis';
+          ctx.fillText(cardTitle.length > 20 ? cardTitle.substring(0, 20) + '...' : cardTitle, cardX + 105, cardY + 40);
+
+          ctx.fillStyle = '#A78BFA';
+          ctx.font = 'bold 12px "Poppins", sans-serif';
+          ctx.fillText(cardArtist.length > 24 ? cardArtist.substring(0, 24) + '...' : cardArtist, cardX + 105, cardY + 62);
+
+          // Mini EQ Visualizer Bars in Card
+          const eqX = cardX + 275;
+          const eqY = cardY + 62;
+          for (let b = 0; b < 4; b++) {
+            const h = Math.sin(playTime * 6 + b * 1.5) * 12 + 14;
+            ctx.fillStyle = '#10B981';
+            ctx.fillRect(eqX + b * 6, eqY - h, 4, h);
+          }
+
+          ctx.restore();
+        }
+
+        // Draw LRC Karaoke Lyrics with Word-by-Word Smooth Highlight
         if (liveSettings.showLyrics && liveSettings.lyricsContent) {
           ctx.save();
           
@@ -1458,6 +1563,12 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
           
           if (activeIndex !== -1) {
             const activeLyric = lyricsList[activeIndex];
+            const nextLyric = lyricsList[activeIndex + 1];
+            const lineStartTime = activeLyric.time;
+            const lineEndTime = nextLyric ? nextLyric.time : lineStartTime + 4.0;
+            const lineDuration = Math.max(0.5, lineEndTime - lineStartTime);
+            const lineProgress = Math.min(1.0, Math.max(0.0, (adjustedTime - lineStartTime) / lineDuration));
+
             const lPosX = liveSettings.lyricPosX ?? 640;
             const lPosY = liveSettings.lyricPosY ?? 650;
             const lFontSize = liveSettings.lyricFontSize ?? 40;
@@ -1480,23 +1591,42 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
               ctx.shadowOffsetY = 0;
             }
             
-            if (liveSettings.lyricShowGlow) {
-              ctx.shadowColor = liveSettings.lyricGlowColor || '#00ffff';
-              ctx.shadowBlur = liveSettings.lyricGlowRadius ?? 10;
-              ctx.shadowOffsetX = 0;
-              ctx.shadowOffsetY = 0;
-            }
-            
             const textToDraw = activeLyric.text;
+            const textWidth = ctx.measureText(textToDraw).width;
             
+            // Draw Inactive / Base Lyrics
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
             if (liveSettings.lyricShowOutline) {
               ctx.strokeStyle = liveSettings.lyricOutlineColor || '#000000';
               ctx.lineWidth = liveSettings.lyricOutlineWidth ?? 3;
               ctx.strokeText(textToDraw, lPosX, lPosY);
             }
-            
-            ctx.fillStyle = liveSettings.lyricActiveColor || '#00ffff';
             ctx.fillText(textToDraw, lPosX, lPosY);
+
+            // Draw Word-by-Word Smooth Karaoke Highlight Sweep
+            if (liveSettings.lyricWordHighlight !== false && textWidth > 0) {
+              ctx.save();
+              const clipWidth = textWidth * lineProgress;
+              const clipStartX = lPosX - textWidth / 2;
+              const clipStartY = lPosY - lFontSize;
+
+              ctx.beginPath();
+              ctx.rect(clipStartX, clipStartY, clipWidth, lFontSize * 2);
+              ctx.clip();
+
+              ctx.fillStyle = liveSettings.lyricActiveColor || '#00ffff';
+              if (liveSettings.lyricShowGlow) {
+                ctx.shadowColor = liveSettings.lyricGlowColor || '#00ffff';
+                ctx.shadowBlur = liveSettings.lyricGlowRadius ?? 15;
+              }
+              if (liveSettings.lyricShowOutline) {
+                ctx.strokeStyle = liveSettings.lyricOutlineColor || '#000000';
+                ctx.lineWidth = liveSettings.lyricOutlineWidth ?? 3;
+                ctx.strokeText(textToDraw, lPosX, lPosY);
+              }
+              ctx.fillText(textToDraw, lPosX, lPosY);
+              ctx.restore();
+            }
           }
           ctx.restore();
         }

@@ -289,7 +289,15 @@ const DEFAULT_SETTINGS = {
   lyricGlowRadius: 10,
   barColorType: 'solid',
   barColor2: '#A78BFA',
-  barGradientAngle: 90
+  barGradientAngle: 90,
+  
+  // WOW Enhancements 2.0
+  showBassReactiveText: true,
+  bassReactiveSensitivity: 1.0,
+  showMusicCardBadge: true,
+  musicCardStyle: 'vinyl',
+  lyricWordHighlight: true,
+  lyricStylePreset: 'apple_music'
 };
 
 export default function App() {

@@ -3003,6 +3003,44 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
               </label>
             </div>
 
+            {/* WOW Feature 1: Bass-Reactive Audio Text Pulsing */}
+            <div className="p-3 bg-[#F3E8FF] border-2 border-black rounded-xl space-y-1.5 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="wizard-bass-text-pulse"
+                  checked={settings.showBassReactiveText !== false}
+                  onChange={(e) => onChange('showBassReactiveText', e.target.checked)}
+                  className="w-4.5 h-4.5 border-2 border-black bg-white rounded cursor-pointer accent-purple-600"
+                />
+                <label htmlFor="wizard-bass-text-pulse" className="text-[10px] font-black uppercase text-purple-950 cursor-pointer flex items-center gap-1">
+                  <span>🎵 Bass-Reactive Text Pulsing & Glow</span>
+                </label>
+              </div>
+              <p className="text-[9px] font-bold text-purple-800/80 leading-tight">
+                Teks judul & artis membesar dan bercahaya otomatis saat ada dentuman drum/bass keras.
+              </p>
+            </div>
+
+            {/* WOW Feature 2: Lower-Third Vinyl Music Card Overlay Badge */}
+            <div className="p-3 bg-[#FEF3C7] border-2 border-black rounded-xl space-y-1.5 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="wizard-music-card-badge"
+                  checked={settings.showMusicCardBadge}
+                  onChange={(e) => onChange('showMusicCardBadge', e.target.checked)}
+                  className="w-4.5 h-4.5 border-2 border-black bg-white rounded cursor-pointer accent-amber-600"
+                />
+                <label htmlFor="wizard-music-card-badge" className="text-[10px] font-black uppercase text-amber-950 cursor-pointer flex items-center gap-1">
+                  <span>💿 Tampilkan Kartu Musik Vinyl (Lower-Third Badge)</span>
+                </label>
+              </div>
+              <p className="text-[9px] font-bold text-amber-800/80 leading-tight">
+                Menampilkan piringan hitam berputar & mini player audio di pojok kiri bawah.
+              </p>
+            </div>
+
             {/* Tampilkan Lower Third / Sosmed */}
             <div className="space-y-3 pt-1">
               <div className="flex items-center gap-2">
@@ -3076,17 +3114,40 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
           <div className="neo-accordion-content space-y-6">
             
             {/* Tampilkan Lirik LRC (Karaoke) */}
-            <div className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                id="wizard-show-lyrics"
-                checked={settings.showLyrics}
-                onChange={(e) => onChange('showLyrics', e.target.checked)}
-                className="w-4.5 h-4.5 border-2 border-black bg-white rounded cursor-pointer accent-black"
-              />
-              <label htmlFor="wizard-show-lyrics" className="text-[10px] font-black uppercase text-black cursor-pointer">
-                Tampilkan Lirik LRC (Karaoke)
-              </label>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="wizard-show-lyrics"
+                  checked={settings.showLyrics}
+                  onChange={(e) => onChange('showLyrics', e.target.checked)}
+                  className="w-4.5 h-4.5 border-2 border-black bg-white rounded cursor-pointer accent-black"
+                />
+                <label htmlFor="wizard-show-lyrics" className="text-[10px] font-black uppercase text-black cursor-pointer">
+                  Tampilkan Lirik LRC (Karaoke)
+                </label>
+              </div>
+
+              {/* WOW Feature: Word-by-Word Smooth Progress Karaoke Highlight */}
+              {settings.showLyrics && (
+                <div className="p-3 bg-[#E0F2FE] border-2 border-black rounded-xl space-y-1.5 shadow-[2px_2px_0px_#000]">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="wizard-lyric-word-highlight"
+                      checked={settings.lyricWordHighlight !== false}
+                      onChange={(e) => onChange('lyricWordHighlight', e.target.checked)}
+                      className="w-4.5 h-4.5 border-2 border-black bg-white rounded cursor-pointer accent-cyan-600"
+                    />
+                    <label htmlFor="wizard-lyric-word-highlight" className="text-[10px] font-black uppercase text-cyan-950 cursor-pointer flex items-center gap-1">
+                      <span>🌟 Smooth Word-by-Word Karaoke Highlight</span>
+                    </label>
+                  </div>
+                  <p className="text-[9px] font-bold text-cyan-800/80 leading-tight">
+                    Warna lirik mengalir secara mengusap kata demi kata saat penyanyi bersuara (Apple Music Style).
+                  </p>
+                </div>
+              )}
             </div>
 
             {settings.showLyrics && (
