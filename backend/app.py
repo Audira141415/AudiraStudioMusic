@@ -516,6 +516,21 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
                 "selectedPath": selected_path
             }
             self.wfile.write(json.dumps(response_data).encode('utf-8'))
+        elif self.path.startswith("/downloads/"):
+            backend_dir = os.path.dirname(os.path.abspath(__file__))
+            filename = os.path.basename(self.path)
+            filepath = os.path.join(backend_dir, "downloads", filename)
+            if os.path.exists(filepath):
+                self.send_response(200)
+                content_type = "audio/mpeg" if filename.endswith(".mp3") else "video/mp4"
+                self.send_header("Content-Type", content_type)
+                self._send_cors_headers()
+                self.end_headers()
+                with open(filepath, "rb") as f:
+                    self.wfile.write(f.read())
+            else:
+                self.send_response(404)
+                self.end_headers()
         elif self.path == "/temp_fallback_audio.mp3":
             backend_dir = os.path.dirname(os.path.abspath(__file__))
             filepath = os.path.join(backend_dir, "temp_fallback_audio.mp3")
@@ -537,6 +552,77 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
         global is_rendering, MAX_PARALLEL_SLOTS
         from urllib.parse import urlparse, parse_qs
         parsed_url = urlparse(self.path)
+
+        if parsed_url.path == "/download_url":
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            backend_dir = os.path.dirname(os.path.abspath(__file__))
+            downloads_dir = os.path.join(backend_dir, "downloads")
+            os.makedirs(downloads_dir, exist_ok=True)
+
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                target_url = data.get("url", "").strip()
+                media_format = data.get("format", "mp3").lower()
+
+                if not target_url:
+                    raise ValueError("URL media tidak boleh kosong")
+
+                out_filename = f"dl_{int(time.time())}.{media_format}"
+                out_filepath = os.path.join(downloads_dir, out_filename)
+
+                title = "Downloaded Media"
+
+                if target_url.lower().endswith(('.mp3', '.wav', '.flac', '.m4a', '.mp4', '.mov', '.png', '.jpg', '.jpeg')):
+                    import urllib.request
+                    req = urllib.request.Request(target_url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req) as resp, open(out_filepath, 'wb') as f:
+                        f.write(resp.read())
+                    title = os.path.basename(target_url)
+                else:
+                    if media_format == 'mp3':
+                        cmd = [
+                            "yt-dlp",
+                            "-x",
+                            "--audio-format", "mp3",
+                            "--audio-quality", "0",
+                            "-o", out_filepath,
+                            "--no-playlist",
+                            "--no-check-certificates",
+                            target_url
+                        ]
+                    else:
+                        cmd = [
+                            "yt-dlp",
+                            "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                            "-o", out_filepath,
+                            "--no-playlist",
+                            "--no-check-certificates",
+                            target_url
+                        ]
+
+                    sub_res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
+                    if sub_res.returncode != 0:
+                        raise ValueError(f"yt-dlp error: {sub_res.stderr[-300:] if sub_res.stderr else 'Gagal mengunduh berkas'}")
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "filepath": out_filepath,
+                    "filename": out_filename,
+                    "title": title,
+                    "downloadUrl": f"http://localhost:1426/downloads/{out_filename}"
+                }).encode('utf-8'))
+            except Exception as e:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode('utf-8'))
+            return
         
         if parsed_url.path == "/export":
             content_type = self.headers.get('Content-Type', '')

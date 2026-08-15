@@ -39,6 +39,7 @@ interface SpectrumEditorProps {
   lrcFileName?: string | null;
   onSaveTemplate?: () => void;
   onLoadTemplate?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onOpenDirectDownload?: (type?: 'audio' | 'background') => void;
 }
 
 const PRESETS = {
@@ -222,7 +223,8 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
   onLrcUpload,
   lrcFileName,
   onSaveTemplate,
-  onLoadTemplate
+  onLoadTemplate,
+  onOpenDirectDownload
 }) => {
   const toggleSection = (idx: number) => {
     const nextStep = activeStep === idx ? null : idx;
@@ -553,6 +555,16 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                 >
                   🛠️ AI Background
                 </button>
+                {onOpenDirectDownload && (
+                  <button 
+                    type="button"
+                    onClick={() => onOpenDirectDownload('background')}
+                    className="py-1.5 px-3 bg-[#E9D5FF] hover:bg-purple-200 text-black border-2 border-black rounded font-black text-[9px] shadow-[1.5px_1.5px_0px_#000] flex items-center gap-1 cursor-pointer"
+                    title="Download Video/Gambar Latar dari URL"
+                  >
+                    ⚡ Download URL
+                  </button>
+                )}
               </div>
 
               {/* ROTASI & PEMBALIKAN GAMBAR / VOLUME AUDIO LATAR */}
@@ -691,7 +703,7 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                   Hapus Semua
                 </button>
               </div>
-              <div className="flex gap-1.5 items-center">
+              <div className="flex gap-2">
                 <input 
                   type="file" 
                   accept="audio/*" 
@@ -701,10 +713,22 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
                 />
                 <label 
                   htmlFor="wizard-audio-input"
-                  className="py-1.5 px-3 bg-[#FBBF24] hover:bg-yellow-500 text-black border-2 border-black rounded font-black text-[9px] shadow-[1.5px_1.5px_0px_#000] cursor-pointer"
+                  className="py-1.5 px-3 bg-[#FBBF24] hover:bg-yellow-500 text-black border-2 border-black rounded font-black text-[9px] shadow-[1.5px_1.5px_0px_#000] cursor-pointer flex-1 text-center"
                 >
-                  + File
+                  Pilih MP3/Audio
                 </label>
+                {onOpenDirectDownload && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenDirectDownload('audio')}
+                    className="py-1.5 px-3 bg-[#E9D5FF] hover:bg-purple-200 text-black border-2 border-black rounded font-black text-[9px] shadow-[1.5px_1.5px_0px_#000] cursor-pointer flex items-center gap-1"
+                    title="Download Audio dari YouTube / URL"
+                  >
+                    ⚡ Download URL / YouTube
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-1.5 items-center">
                 <input 
                   type="file" 
                   accept="audio/*" 

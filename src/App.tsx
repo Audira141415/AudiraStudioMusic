@@ -28,6 +28,7 @@ import { AICopilotView } from './components/AICopilotView';
 import { BatchQueuePanel } from './components/BatchQueuePanel';
 import { LandingPageView } from './components/LandingPageView';
 import { QueueView } from './components/QueueView';
+import { DirectDownloadModal } from './components/DirectDownloadModal';
 
 // Conditional import of Tauri api to prevent browser crash
 let invokeTauri: any = null;
@@ -306,6 +307,29 @@ export default function App() {
   // 1. Settings State
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
+  // State for Direct Download Modal (Audira Clip Engine)
+  const [isDirectDownloadOpen, setIsDirectDownloadOpen] = useState(false);
+
+  const handleOpenDirectDownload = (_type: 'audio' | 'background' = 'audio') => {
+    setIsDirectDownloadOpen(true);
+  };
+
+  const handleBgUploadDirect = (file: File) => {
+    const url = getFileUrl(file);
+    setBgFiles(prev => [...prev, file]);
+    setBgUrls(prev => [...prev, url]);
+    setBgFile(file);
+    setBgUrl(url);
+    setSettings((prev: any) => ({ ...prev, bgMode: 'upload' }));
+  };
+
+  const handleSelectDownloadedFile = (file: File, type: 'audio' | 'background') => {
+    if (type === 'audio') {
+      handleAudioUpload(file);
+    } else {
+      handleBgUploadDirect(file);
+    }
+  };
   // State for Active View/Tab
   const [activeTab, setActiveTab] = useState<'dashboard' | 'editor' | 'thumbnail' | 'copilot' | 'history' | 'settings' | 'queue'>('dashboard');
   const [activeStep, setActiveStep] = useState<number | null>(1);
@@ -1568,6 +1592,7 @@ export default function App() {
                   setBgUrl(url);
                   setBgFile(new File([], name));
                 }}
+                onOpenDirectDownload={handleOpenDirectDownload}
                 audioName={audioFile ? audioFile.name : null}
                 bgNames={bgFiles.map(f => f.name)}
                 activeStep={activeStep}
@@ -2153,6 +2178,12 @@ export default function App() {
             onNavigateToStudio={() => setActiveTab('editor')}
           />
         )}
+        {/* Direct Download Modal (yt-dlp Audira Clip Engine) */}
+        <DirectDownloadModal 
+          isOpen={isDirectDownloadOpen}
+          onClose={() => setIsDirectDownloadOpen(false)}
+          onSelectDownloadedFile={handleSelectDownloadedFile}
+        />
       </div>
 
       {/* 3. Footer Mockup Status Bar */}
