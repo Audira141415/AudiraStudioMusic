@@ -531,6 +531,18 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
             }
             self.wfile.write(json.dumps(response_data).encode('utf-8'))
 
+        elif parsed_url.path == "/health":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "status": "ok",
+                "message": "Audira Python Backend Server Active",
+                "port": 1426,
+                "isRendering": is_rendering
+            }).encode('utf-8'))
+
         elif parsed_url.path == "/diagnostics":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")

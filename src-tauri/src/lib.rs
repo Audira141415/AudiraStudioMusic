@@ -260,8 +260,12 @@ pub fn run() {
                     if let Some(exe_dir) = exe_path.parent() {
                         let candidate_paths = vec![
                             exe_dir.join("app-x86_64-pc-windows-msvc.exe"),
+                            exe_dir.join("app.exe"),
                             exe_dir.join("binaries").join("app-x86_64-pc-windows-msvc.exe"),
+                            exe_dir.join("resources").join("app-x86_64-pc-windows-msvc.exe"),
+                            exe_dir.join("resources").join("binaries").join("app-x86_64-pc-windows-msvc.exe"),
                             exe_dir.join("_up_").join("binaries").join("app-x86_64-pc-windows-msvc.exe"),
+                            std::path::PathBuf::from("F:\\AudiraStudioMusic\\backend\\dist\\app-x86_64-pc-windows-msvc.exe"),
                         ];
                         for bin_path in candidate_paths {
                             if bin_path.exists() {

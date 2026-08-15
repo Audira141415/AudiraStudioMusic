@@ -478,6 +478,40 @@ export default function App() {
     localStorage.setItem('user_profile', JSON.stringify(userProfile));
   }, [userProfile]);
 
+  // Automatic Backend Server Startup & Health Monitoring
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
+
+  useEffect(() => {
+    let checkInterval: any = null;
+
+    const checkAndStartBackend = async () => {
+      try {
+        const res = await fetch('http://localhost:1426/health');
+        if (res.ok) {
+          setIsBackendConnected(true);
+          return;
+        }
+      } catch (err) {
+        setIsBackendConnected(false);
+      }
+
+      if (invokeTauri) {
+        try {
+          await invokeTauri('start_python_backend');
+        } catch (e) {
+          console.warn("Auto start python backend warning:", e);
+        }
+      }
+    };
+
+    checkAndStartBackend();
+    checkInterval = setInterval(checkAndStartBackend, 3000);
+
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+    };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('user_accounts_list', JSON.stringify(userAccountsList));
   }, [userAccountsList]);
@@ -2774,6 +2808,30 @@ export default function App() {
           <span>Config: <strong className="text-black">{exportConfig.resolution} @ {exportConfig.fps} FPS</strong></span>
         </div>
         <div className="flex items-center gap-2">
+          {isBackendConnected ? (
+            <span className="bg-emerald-400 text-black px-2.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_#000] text-[9px] font-black flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-900 animate-pulse"></span>
+              <span>PYTHON SERVER ACTIVE (PORT 1426)</span>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={async () => {
+                if (invokeTauri) {
+                  try {
+                    await invokeTauri('start_python_backend');
+                    alert("⚡ Memicu penyiapan server Python backend pada port 1426...");
+                  } catch (e) {
+                    alert(`Gagal memicu backend: ${e}`);
+                  }
+                }
+              }}
+              className="bg-amber-400 hover:bg-amber-300 text-black px-2.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_#000] text-[9px] font-black cursor-pointer flex items-center gap-1 animate-pulse"
+              title="Klik untuk Menghubungkan Backend Python Manual"
+            >
+              <span>⚡ CONNECT BACKEND (PORT 1426)</span>
+            </button>
+          )}
           <span className="bg-[#FFDE4D] text-black px-2.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_#000] text-[9px] font-black">
             License & Copyright © 2026 by AUDIRA (Agus Dwi R)
           </span>
