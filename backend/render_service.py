@@ -7,6 +7,7 @@ import math
 import cv2
 import random
 import numpy as np
+import threading
 
 def parse_lrc_lyrics(lrc_path_or_content):
     lyrics_list = []
