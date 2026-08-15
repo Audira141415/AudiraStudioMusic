@@ -80,38 +80,71 @@ pub fn run() {
         .manage(PythonServerState(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![export_video])
         .setup(|app| {
-            // Auto-start Python HTTP server sidecar from Tauri on port 1426
             println!("Auto-starting Python HTTP server sidecar from Tauri...");
+            let mut started = false;
 
-            let sidecar = app.shell().sidecar("app").expect("failed to create sidecar");
-            match sidecar.args(["--server"]).spawn() {
-                Ok((mut rx, child)) => {
-                    let state = app.state::<PythonServerState>();
-                    let mut lock = state.0.lock().unwrap();
-                    *lock = Some(child);
-                    println!("Python server started successfully on port 1426.");
-                    
-                    // Stream sidecar stdout/stderr to frontend
-                    let app_clone = app.handle().clone();
-                    tauri::async_runtime::spawn(async move {
-                        while let Some(event) = rx.recv().await {
-                            match event {
-                                CommandEvent::Stdout(line) | CommandEvent::Stderr(line) => {
-                                    let line_str = String::from_utf8_lossy(&line);
-                                    let trimmed = line_str.trim();
-                                    if !trimmed.is_empty() {
-                                        let _ = app_clone.emit("render-log", format!("SYSTEM: {}", trimmed));
-                                    }
-                                },
-                                _ => {}
+            // 1. Try spawning via Tauri Shell Sidecar API
+            if let Ok(sidecar) = app.shell().sidecar("app") {
+                match sidecar.args(["--server"]).spawn() {
+                    Ok((mut rx, child)) => {
+                        let state = app.state::<PythonServerState>();
+                        let mut lock = state.0.lock().unwrap();
+                        *lock = Some(child);
+                        println!("Python server started successfully via Tauri Shell API on port 1426.");
+                        started = true;
+                        
+                        let app_clone = app.handle().clone();
+                        tauri::async_runtime::spawn(async move {
+                            while let Some(event) = rx.recv().await {
+                                match event {
+                                    CommandEvent::Stdout(line) | CommandEvent::Stderr(line) => {
+                                        let line_str = String::from_utf8_lossy(&line);
+                                        let trimmed = line_str.trim();
+                                        if !trimmed.is_empty() {
+                                            let _ = app_clone.emit("render-log", format!("SYSTEM: {}", trimmed));
+                                        }
+                                    },
+                                    _ => {}
+                                }
                             }
-                        }
-                    });
-                }
-                Err(e) => {
-                    eprintln!("Failed to auto-start Python server: {}. Please run build_backend.bat to build it.", e);
+                        });
+                    }
+                    Err(e) => {
+                        eprintln!("Tauri Shell sidecar spawn failed: {}", e);
+                    }
                 }
             }
+
+            // 2. Direct Process Fallback if Tauri sidecar API fails in release build
+            if !started {
+                println!("Attempting direct process execution fallback for Python server backend...");
+                if let Ok(exe_path) = std::env::current_exe() {
+                    if let Some(exe_dir) = exe_path.parent() {
+                        let candidate_paths = vec![
+                            exe_dir.join("app-x86_64-pc-windows-msvc.exe"),
+                            exe_dir.join("binaries").join("app-x86_64-pc-windows-msvc.exe"),
+                            exe_dir.join("_up_").join("binaries").join("app-x86_64-pc-windows-msvc.exe"),
+                        ];
+                        for bin_path in candidate_paths {
+                            if bin_path.exists() {
+                                println!("Found backend binary at: {:?}. Spawning...", bin_path);
+                                if let Ok(_child_proc) = std::process::Command::new(&bin_path)
+                                    .arg("--server")
+                                    .spawn() {
+                                    println!("Direct backend process spawned successfully on port 1426!");
+                                    started = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !started {
+                eprintln!("WARNING: Could not start Python HTTP server backend on port 1426.");
+            }
+
             Ok(())
         })
         .build(tauri::generate_context!())
