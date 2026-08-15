@@ -446,6 +446,7 @@ export default function App() {
     audioNormalize: false
   });
   const [isExporting, setIsExporting] = useState(false);
+  const [isEditingNewDraft, setIsEditingNewDraft] = useState(false);
   const [isConsoleMinimized, setIsConsoleMinimized] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportStatus, setExportStatus] = useState<string>('');
@@ -1108,6 +1109,11 @@ export default function App() {
         }
       } catch (e) {}
 
+      if (isEditingNewDraft) {
+        setIsEditingNewDraft(false);
+        alert("✨ Proyek Baru Berhasil Masuk Antrean! Backend Python akan memproses lagu ini secara otomatis.");
+      }
+
       // Poll progress from Python server
       const pollInterval = setInterval(async () => {
         try {
@@ -1593,7 +1599,7 @@ export default function App() {
               isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden border-r-0' : 'w-[360px] lg:w-[400px] shrink-0'
             }`}>
               <SpectrumEditor
-                isLocked={isExporting}
+                isLocked={isExporting && !isEditingNewDraft}
                 settings={settings}
                 onChange={handleSettingChange}
                 onResetToDefaults={handleResetToDefaults}
@@ -1639,34 +1645,55 @@ export default function App() {
             }`}>
               {/* Draft & Batch Queue Control Header */}
               {isExporting && (
-                <div className="w-full p-3.5 bg-amber-100 border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 text-amber-950 font-black text-xs select-none">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">⚡</span>
-                    <div>
-                      <div className="uppercase tracking-wider font-black text-amber-950">1 VIDEO SEDANG DI-RENDER DI LATAR BELAKANG ({exportProgress}%)</div>
-                      <p className="text-[10px] text-amber-800 font-bold">Ingin memproses lagu lain sekaligus? Klik tombol di kanan untuk membuat proyek baru ke antrean render!</p>
+                isEditingNewDraft ? (
+                  <div className="w-full p-3.5 bg-emerald-100 border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 text-emerald-950 font-black text-xs select-none">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">✨</span>
+                      <div>
+                        <div className="uppercase tracking-wider font-black text-emerald-950">DRAFT PROYEK BARU AKTIF (#2 UNTUK ANTREAN)</div>
+                        <p className="text-[10px] text-emerald-800 font-bold">Silakan pilih lagu & background baru di menu kiri (Step 1 - Step 5), lalu klik [MULAI RENDER MP4] di bawah!</p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingNewDraft(false)}
+                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-black border-2 border-black rounded-lg font-black text-xs uppercase tracking-wider shadow-[2px_2px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
+                    >
+                      <span>🔒 KEMBALI KE PROYEK RENDERING</span>
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAudioFile(null);
-                      setAudioUrl(null);
-                      handleSettingChange('songTitle', 'Judul Lagu Baru');
-                      handleSettingChange('artistName', 'Artis Baru');
-                      setBgFile(null);
-                      setBgUrl(null);
-                      setLogoFile(null);
-                      setVoiceoverFile(null);
-                      setLrcFile(null);
-                      setLrcFileName(null);
-                      alert("✨ Draft Proyek Baru Siap! Silakan upload lagu & background kedua, lalu klik [MULAI RENDER MP4] untuk memasukkannya ke Antrean Render Python.");
-                    }}
-                    className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-black border-2 border-black rounded-lg font-black text-xs uppercase tracking-wider shadow-[2px_2px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
-                  >
-                    <span>➕ BUAT PROYEK/ANTREAN BARU</span>
-                  </button>
-                </div>
+                ) : (
+                  <div className="w-full p-3.5 bg-amber-100 border-[2.5px] border-black rounded-xl shadow-[3px_3px_0px_#000] flex items-center justify-between gap-3 text-amber-950 font-black text-xs select-none">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">⚡</span>
+                      <div>
+                        <div className="uppercase tracking-wider font-black text-amber-950">1 VIDEO SEDANG DI-RENDER DI LATAR BELAKANG ({exportProgress}%)</div>
+                        <p className="text-[10px] text-amber-800 font-bold">Ingin memproses lagu lain sekaligus? Klik tombol di kanan untuk membuka 5 Step proyek baru!</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAudioFile(null);
+                        setAudioUrl(null);
+                        handleSettingChange('songTitle', 'Judul Lagu Baru');
+                        handleSettingChange('artistName', 'Artis Baru');
+                        setBgFile(null);
+                        setBgUrl(null);
+                        setLogoFile(null);
+                        setVoiceoverFile(null);
+                        setLrcFile(null);
+                        setLrcFileName(null);
+                        setIsEditingNewDraft(true);
+                        setIsSidebarCollapsed(false);
+                        setActiveStep(1); // Auto open Step 1: Media
+                      }}
+                      className="px-3.5 py-2 bg-yellow-400 hover:bg-yellow-300 text-black border-2 border-black rounded-lg font-black text-xs uppercase tracking-wider shadow-[2px_2px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
+                    >
+                      <span>➕ BUAT PROYEK/ANTREAN BARU</span>
+                    </button>
+                  </div>
+                )
               )}
 
               <div className="w-full flex-1 flex flex-col items-center justify-center min-h-0 max-h-[calc(100vh-230px)]">
