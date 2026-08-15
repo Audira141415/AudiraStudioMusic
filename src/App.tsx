@@ -17,7 +17,8 @@ import {
   Layers,
   LogOut,
   Plus,
-  User
+  User,
+  BookOpen
 } from 'lucide-react';
 import { PreviewCanvas } from './components/PreviewCanvas';
 import { SpectrumEditor } from './components/SpectrumEditor';
@@ -36,6 +37,7 @@ import { AudioStemSeparatorModal } from './components/AudioStemSeparatorModal';
 import { PresetTemplateModal } from './components/PresetTemplateModal';
 import { AudioEqualizerModal } from './components/AudioEqualizerModal';
 import { BatchMultiSongModal } from './components/BatchMultiSongModal';
+import { AppUserGuideModal } from './components/AppUserGuideModal';
 
 // Conditional import of Tauri api to prevent browser crash
 let invokeTauri: any = null;
@@ -365,6 +367,7 @@ export default function App() {
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
   const [isEqModalOpen, setIsEqModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
 
   const handleApplyPreset = (presetSettings: any) => {
     setSettings(prev => ({ ...prev, ...presetSettings }));
@@ -1858,6 +1861,15 @@ export default function App() {
 
           <div className="w-full px-2 flex flex-col gap-3">
             <button
+              onClick={() => setIsUserGuideOpen(true)}
+              className="p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full bg-emerald-100 hover:bg-emerald-200 text-emerald-950 shadow-[1.5px_1.5px_0px_#000] hover:translate-y-[-1px] hover:shadow-[2.5px_2.5px_0px_#000] cursor-pointer"
+              title="Panduan Penggunaan Studio & FAQ Interaktif"
+            >
+              <BookOpen className="w-5 h-5 text-emerald-800" />
+              <span>Panduan</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('profile')}
               className={`p-3 rounded-xl border-2 border-black flex flex-col items-center justify-center gap-1 font-bold text-[9px] uppercase tracking-wider transition-all w-full ${
                 activeTab === 'profile'
@@ -2681,6 +2693,11 @@ export default function App() {
           isOpen={isBatchModalOpen}
           onClose={() => setIsBatchModalOpen(false)}
           onQueueBatchSongs={handleQueueBatchSongs}
+        />
+        {/* Interactive User Guide & Manual Hub Modal */}
+        <AppUserGuideModal
+          isOpen={isUserGuideOpen}
+          onClose={() => setIsUserGuideOpen(false)}
         />
       </div>
 
