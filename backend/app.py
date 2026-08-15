@@ -580,6 +580,20 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
                         f.write(resp.read())
                     title = os.path.basename(target_url)
                 else:
+                    # Auto-detect cookies.txt for YouTube anti-bot & age-restriction bypass
+                    cookies_path = None
+                    candidate_paths = [
+                        os.path.join(backend_dir, "cookies.txt"),
+                        os.path.join(os.path.dirname(backend_dir), "cookies.txt"),
+                        "F:\\AUDIRA-CLIP-AI\\cookies.txt"
+                    ]
+                    for cp in candidate_paths:
+                        if os.path.exists(cp):
+                            cookies_path = cp
+                            break
+
+                    cookie_args = ["--cookies", cookies_path] if cookies_path else []
+
                     if media_format == 'mp3':
                         cmd = [
                             "yt-dlp",
@@ -588,22 +602,32 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
                             "--audio-quality", "0",
                             "-o", out_filepath,
                             "--no-playlist",
-                            "--no-check-certificates",
-                            target_url
-                        ]
+                            "--no-check-certificates"
+                        ] + cookie_args + [target_url]
                     else:
                         cmd = [
                             "yt-dlp",
                             "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
                             "-o", out_filepath,
                             "--no-playlist",
-                            "--no-check-certificates",
-                            target_url
-                        ]
+                            "--no-check-certificates"
+                        ] + cookie_args + [target_url]
 
                     sub_res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
                     if sub_res.returncode != 0:
-                        raise ValueError(f"yt-dlp error: {sub_res.stderr[-300:] if sub_res.stderr else 'Gagal mengunduh berkas'}")
+                        # Fallback strategy if cookies expired or failed
+                        cmd_fallback = [
+                            "yt-dlp",
+                            "-x" if media_format == 'mp3' else "-f",
+                            "mp3" if media_format == 'mp3' else "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                            "-o", out_filepath,
+                            "--no-playlist",
+                            "--no-check-certificates",
+                            target_url
+                        ]
+                        sub_res = subprocess.run(cmd_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=180)
+                        if sub_res.returncode != 0:
+                            raise ValueError(f"yt-dlp error: {sub_res.stderr[-300:] if sub_res.stderr else 'Gagal mengunduh berkas'}")
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
