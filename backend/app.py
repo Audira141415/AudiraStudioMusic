@@ -486,20 +486,22 @@ class RenderHTTPRequestHandler(BaseHTTPRequestHandler):
             }
             self.wfile.write(json.dumps(response_data).encode('utf-8'))
 
-        elif self.path == "/diagnostics":
+        elif parsed_url.path == "/diagnostics":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self._send_cors_headers()
             self.end_headers()
             diag_data = check_diagnostics()
             self.wfile.write(json.dumps(diag_data).encode('utf-8'))
-        elif self.path == "/system_specs":
+        elif parsed_url.path == "/system_specs":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self._send_cors_headers()
             self.end_headers()
+            if cached_system_specs is None:
+                init_system_specs()
             self.wfile.write(json.dumps(cached_system_specs).encode('utf-8'))
-        elif self.path == "/gpu_info":
+        elif parsed_url.path == "/gpu_info":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self._send_cors_headers()

@@ -76,17 +76,29 @@ export const OutputMetadataDrawer: React.FC<OutputMetadataDrawerProps> = ({
 
   const fetchSpecs = async () => {
     setLoadingSpecs(true);
-    try {
-      const res = await fetch('http://localhost:1426/system_specs');
-      if (res.ok) {
-        const data = await res.json();
-        setSpecs(data);
+    let attempts = 0;
+    let success = false;
+    
+    while (attempts < 4 && !success) {
+      try {
+        attempts++;
+        const res = await fetch('http://localhost:1426/system_specs');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.cpu) {
+            setSpecs(data);
+            success = true;
+            break;
+          }
+        }
+      } catch (e) {
+        console.warn(`Attempt ${attempts} failed to fetch system specs:`, e);
       }
-    } catch (e) {
-      console.warn("Failed to fetch system specs:", e);
-    } finally {
-      setLoadingSpecs(false);
+      if (!success && attempts < 4) {
+        await new Promise(r => setTimeout(r, 600));
+      }
     }
+    setLoadingSpecs(false);
   };
 
   const handleChooseOutputPath = async () => {
