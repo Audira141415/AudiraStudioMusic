@@ -934,7 +934,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
 
         const barW = liveSettings.barWidth || 4;
         const barGap = liveSettings.barSpacing || 3;
-        const numBars = Math.floor(1000 / Math.max(1, barW + barGap)) || 142;
+        const numBars = Math.floor(500 / Math.max(1, barW + barGap)) || 71;
         const totalWidth = numBars * (barW + barGap) - barGap;
         const startX = -totalWidth / 2;
 

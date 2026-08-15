@@ -2461,15 +2461,41 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
               </div>
 
               {/* Slider Lebar Area Spektrum */}
-              <div className="space-y-1">
+              <div className="space-y-1 pt-1 border-t border-black/10">
                 <div className="flex justify-between items-center text-[10px] font-black uppercase text-black">
-                  <span>Lebar Bentang Spektrum:</span>
-                  <span>{settings.specWidthPct.toFixed(2)}x</span>
+                  <span>↔️ Lebar Horizontal Bentang Spektrum:</span>
+                  <span className="bg-[#06B6D4] text-white text-[9px] px-2 py-0.5 rounded border border-black font-mono">
+                    {Math.round(500 * settings.specWidthPct)}px ({settings.specWidthPct.toFixed(2)}x)
+                  </span>
                 </div>
+
+                {/* Instant Width Preset Buttons */}
+                <div className="grid grid-cols-4 gap-1.5 py-1">
+                  {[
+                    { label: '🤏 Ringkas', val: 0.50 },
+                    { label: '📊 Sedang', val: 0.80 },
+                    { label: '↔️ Lebar', val: 1.20 },
+                    { label: '📐 Maks', val: 1.80 }
+                  ].map(w => (
+                    <button
+                      key={w.label}
+                      type="button"
+                      onClick={() => onChange('specWidthPct', w.val)}
+                      className={`py-1 px-1 border border-black rounded text-[9px] font-black text-center transition-all cursor-pointer ${
+                        Math.abs(settings.specWidthPct - w.val) < 0.08
+                          ? 'bg-[#06B6D4] text-white shadow-[1px_1px_0px_#000]'
+                          : 'bg-white text-black hover:bg-amber-100'
+                      }`}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+
                 <input
                   type="range"
                   min="0.10"
-                  max="3.00"
+                  max="2.50"
                   step="0.05"
                   value={settings.specWidthPct}
                   onChange={(e) => onChange('specWidthPct', parseFloat(e.target.value))}
