@@ -759,6 +759,26 @@ export default function App() {
     return analyserRef.current;
   };
 
+  const [bgAudioFile, setBgAudioFile] = useState<File | null>(null);
+  const [bgAudioFileName, setBgAudioFileName] = useState<string | null>(null);
+  const bgAudioElementRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleBgAudioUpload = (file: File | null) => {
+    if (!file) {
+      setBgAudioFile(null);
+      setBgAudioFileName(null);
+      handleSettingChange('enableBgAudio', false);
+      handleSettingChange('bgAudioUrl', '');
+      return;
+    }
+    setBgAudioFile(file);
+    setBgAudioFileName(file.name);
+    const url = getFileUrl(file);
+    handleSettingChange('enableBgAudio', true);
+    handleSettingChange('bgAudioUrl', url);
+    handleSettingChange('bgAudioName', file.name);
+  };
+
   // Play / Pause toggler
   const handlePlayPause = () => {
     if (!audioElementRef.current) return;
@@ -769,6 +789,7 @@ export default function App() {
     if (isPlaying) {
       mainAudio.pause();
       if (vo) vo.pause();
+      if (bgAudioElementRef.current) bgAudioElementRef.current.pause();
       setIsPlaying(false);
     } else {
       initAudioAnalyser();
@@ -778,6 +799,11 @@ export default function App() {
         if (vo && (mixer === 'Campurkan Musik + Voiceover' || mixer === 'Gunakan Voiceover Saja')) {
           vo.currentTime = mainAudio.currentTime;
           vo.play().catch(e => console.warn("Voiceover play blocked:", e));
+        }
+        if (bgAudioElementRef.current && settings.enableBgAudio) {
+          bgAudioElementRef.current.currentTime = mainAudio.currentTime;
+          bgAudioElementRef.current.volume = Math.max(0.01, Math.min(1, (settings.bgAudioVolume || 15) / 100));
+          bgAudioElementRef.current.play().catch(e => console.warn("Bg audio play blocked:", e));
         }
       }).catch(err => {
         console.warn("Audio play blocked by browser autoplay rules:", err);
@@ -1253,6 +1279,7 @@ export default function App() {
       if (voiceoverFile) formData.append('voiceoverFile', voiceoverFile);
       if (customFontFile) formData.append('fontFile', customFontFile);
       if (lrcFile) formData.append('lyricFile', lrcFile);
+      if (bgAudioFile) formData.append('bgAudioFile', bgAudioFile);
 
       const res = await fetch('http://localhost:1426/export', {
         method: 'POST',
@@ -1846,6 +1873,8 @@ export default function App() {
                 customFontName={customFontName}
                 onLrcUpload={handleLrcUpload}
                 lrcFileName={lrcFileName}
+                bgAudioFileName={bgAudioFileName}
+                onBgAudioUpload={handleBgAudioUpload}
                 onSaveTemplate={handleSaveTemplate}
                 onLoadTemplate={handleLoadTemplate}
               />
@@ -2578,6 +2607,11 @@ export default function App() {
               {exportStatus}
             </p>
           </div>
+          <audio
+            ref={bgAudioElementRef}
+            src={settings.bgAudioUrl || ''}
+            loop
+          />
         </div>
       )}
     </div>

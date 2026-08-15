@@ -38,6 +38,8 @@ interface SpectrumEditorProps {
   customFontName?: string | null;
   onLrcUpload?: (file: File | null) => void;
   lrcFileName?: string | null;
+  bgAudioFileName?: string | null;
+  onBgAudioUpload?: (file: File | null) => void;
   onSaveTemplate?: () => void;
   onLoadTemplate?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onOpenDirectDownload?: (type?: 'audio' | 'background') => void;
@@ -228,6 +230,8 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
   customFontName,
   onLrcUpload,
   lrcFileName,
+  bgAudioFileName,
+  onBgAudioUpload,
   onSaveTemplate,
   onLoadTemplate,
   onOpenDirectDownload,
@@ -1090,14 +1094,61 @@ export const SpectrumEditor: React.FC<SpectrumEditorProps> = ({
 
               {settings.enableBgAudio && (
                 <div className="pl-6 space-y-3 pt-1 border-t border-black/10">
+
+                  {/* 1. Upload Local Audio File from Computer */}
+                  <div className="p-2.5 bg-white border-2 border-black rounded-lg space-y-2 shadow-[2px_2px_0px_#000]">
+                    <span className="text-[9px] font-black uppercase text-emerald-950 block">
+                      📁 Unggah File Audio Pelapis Dari Komputer (MP3 / WAV / FLAC):
+                    </span>
+                    
+                    <div className="flex items-center gap-2">
+                      <label 
+                        htmlFor="bg-audio-file-input" 
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border border-black rounded text-[10px] font-black uppercase shadow-[1.5px_1.5px_0px_#000] cursor-pointer flex items-center gap-1.5 shrink-0 active:translate-y-[1px]"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5 text-white" />
+                        <span>{bgAudioFileName ? 'Ganti File Audio' : 'Pilih Audio Pelapis'}</span>
+                      </label>
+                      <input
+                        type="file"
+                        id="bg-audio-file-input"
+                        accept="audio/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0] && onBgAudioUpload) {
+                            onBgAudioUpload(e.target.files[0]);
+                          }
+                        }}
+                        className="hidden"
+                      />
+
+                      {bgAudioFileName ? (
+                        <div className="flex items-center gap-1 bg-emerald-100 border border-emerald-500 text-emerald-950 px-2 py-1 rounded text-[9px] font-black truncate max-w-[180px]">
+                          <Music className="w-3 h-3 text-emerald-700 shrink-0" />
+                          <span className="truncate">{bgAudioFileName}</span>
+                          <button
+                            type="button"
+                            onClick={() => onBgAudioUpload && onBgAudioUpload(null)}
+                            className="text-red-600 font-black hover:text-red-800 ml-1 cursor-pointer"
+                            title="Hapus Audio Pelapis"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[8.5px] text-black/50 font-bold italic">Belum ada file lokal dipilih</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Or Select Preset Sound Bed */}
                   <div className="space-y-1">
-                    <span className="text-[9px] font-bold text-black block">Pilih Preset Ambient / Sound Bed:</span>
+                    <span className="text-[9px] font-bold text-black block">Atau Pilih Preset Ambient Noise (Opsional):</span>
                     <select
                       value={settings.bgAudioPreset || 'none'}
                       onChange={(e) => onChange('bgAudioPreset', e.target.value)}
                       className="w-full bg-white border border-black rounded p-1.5 font-bold text-xs shadow-[1.5px_1.5px_0px_#000]"
                     >
-                      <option value="none">-- Pilih Preset Suara Ambient --</option>
+                      <option value="none">-- Tanpa Preset (Gunakan File Audio Lokal) --</option>
                       <option value="rain">🌧️ Hujan & Angin Halus (Ambient Rain Bed)</option>
                       <option value="crackle">📻 Derik Vinyl Lofi (Vintage Crackle Noise)</option>
                       <option value="cafe">☕ Suara Kafe & Ambience Alam</option>
