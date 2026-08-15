@@ -1,0 +1,3 @@
+Desc: GPU (h264_nvenc)
+Command:
+ffmpeg -y -i F:\AudiraStudioMusic\backend\job_1786694924_1_audio.mp3 -f rawvideo -pix_fmt bgra -s 1920x1080 -r 30 -i - -filter_complex [1:v]null[v_composed]; [0:a]afade=t=in:ss=0:d=2,afade=t=out:st=1242.889896:d=3[a_filtered] -map [v_composed] -map [a_filtered] -c:v h264_nvenc -preset fast -pix_fmt yuv420p -r 30 -g 60 -t 1245.889896 -b:v 24M -c:a aac -b:a 192k F:/AudiraStudioMusic/exports/visualizer.mp4

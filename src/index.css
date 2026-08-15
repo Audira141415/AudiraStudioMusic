@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAF6ED;
+    color: #1A1A1A;
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Custom Neobrutalism Scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #FAF6ED;
+    border-left: 2px solid #000;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #000;
+    border: 2px solid #FAF6ED;
+    border-radius: 4px;
+  }
+}
+
+/* Neobrutalism Design Tokens */
+.neo-border {
+  border: 2.5px solid #000000;
+}
+
+.neo-shadow {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+.neo-shadow-lg {
+  box-shadow: 6px 6px 0px 0px #000000;
+}
+
+.neo-shadow-sm {
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+.neo-interactive {
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neo-interactive:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #000000;
+}
+
+.neo-interactive:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+/* Input Fields */
+.neo-input {
+  border: 2px solid #000;
+  background-color: #FFF;
+  color: #000;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 2px 2px 0px 0px #000;
+  outline: none;
+  transition: transform 0.1s;
+}
+
+.neo-input:focus {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px 0px #000;
+}
+
+/* Buttons */
+.neo-btn-primary {
+  background-color: #8B5CF6; /* Saturated purple */
+  color: #FFFFFF;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 2.5px solid #000;
+  box-shadow: 4px 4px 0px 0px #000;
+  transition: all 0.1s;
+}
+
+.neo-btn-primary:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #000;
+}
+
+.neo-btn-primary:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0px 0px #000;
+}
+
+.neo-btn-secondary {
+  background-color: #FFFFFF;
+  color: #000000;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 2.5px solid #000;
+  box-shadow: 4px 4px 0px 0px #000;
+  transition: all 0.1s;
+}
+
+.neo-btn-secondary:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #000;
+}
+
+.neo-btn-secondary:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 3px 3px 0px 0px #000;
+}
+
+/* Accordion Custom */
+.neo-accordion-header {
+  background-color: #FFFFFF;
+  color: #000000;
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 3px 3px 0px 0px #000;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.1s;
+}
+
+.neo-accordion-header:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #000;
+}
+
+.neo-accordion-content {
+  background-color: #FFFDF9;
+  border-left: 2px solid #000;
+  border-right: 2px solid #000;
+  border-bottom: 2px solid #000;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  margin-top: -4px;
+  padding: 20px;
+  box-shadow: 3px 3px 0px 0px #000;
+}
+
+/* Range input styling for Neobrutalism */
+input[type="range"].neo-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #000000;
+  height: 8px;
+  border-radius: 0px;
+  border: 1px solid #000;
+  outline: none;
+}
+
+input[type="range"].neo-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #FFF;
+  border: 2.5px solid #000;
+  border-radius: 4px;
+  box-shadow: 2px 2px 0px #000;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+input[type="range"].neo-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  background: #8B5CF6;
+}

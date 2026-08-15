@@ -1,0 +1,22 @@
+{
+  "audioPath": "DUMMY_AUDIO_PATH",
+  "backgroundPath": "DUMMY_BG_PATH",
+  "settings": {
+    "visualizerType": "bars",
+    "barColor": "#8B5CF6",
+    "barWidth": 4,
+    "barSpacing": 3,
+    "sensitivity": 1.2,
+    "backgroundBlur": 6,
+    "backgroundBrightness": 65,
+    "particleIntensity": 1.5,
+    "textTitle": "Render Verification",
+    "textArtist": "Audira Studio Test",
+    "textSize": 36,
+    "textColor": "#FFFFFF",
+    "textPosition": 50,
+    "resolution": "720p",
+    "fps": 30
+  },
+  "outputPath": "backend/test_output.mp4"
+}
